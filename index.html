@@ -3,312 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>時間裂縫 - Roguelite 升級版</title>
+    <title>文字RPG - 龐大軍械庫擴充版</title>
     <style>
-        :root {
-            --bg-color: #0b0c10; --text-color: #c5c6c7; --border-color: #45a29e;
-            --primary-color: #66fcf1; --btn-bg: #1f2833; --danger-color: #ff4c4c;
-            --panel-bg: #1a1a1d; --highlight: #fca311; --intent-color: #ff6b6b;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color); color: var(--text-color);
-            margin: 0; padding: 0; display: flex; justify-content: center;
-        }
-        #game-container {
-            width: 100%; max-width: 600px; background: var(--bg-color);
-            min-height: 100vh; border-left: 2px solid var(--border-color);
-            border-right: 2px solid var(--border-color); padding: 20px; box-sizing: border-box;
-            position: relative;
-        }
+        :root { --bg-color: #0b0c10; --text-color: #c5c6c7; --primary-color: #66fcf1; --border-color: #45a29e; --panel-bg: #1f2833; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        #game-container { width: 100%; max-width: 800px; background: #111; padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); }
         .screen { display: none; }
         .screen.active { display: block; animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        h1, h2, h3 { text-align: center; color: var(--primary-color); }
-        .menu-btn {
-            display: block; width: 100%; padding: 14px; margin: 10px 0;
-            font-size: 16px; background-color: var(--btn-bg); color: var(--text-color);
-            border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;
-            transition: 0.2s; font-weight: bold;
-        }
-        .menu-btn:hover { background-color: #2c3a49; border-color: var(--primary-color); box-shadow: 0 0 8px rgba(102, 252, 241, 0.4); }
+        .menu-btn { display: block; width: 100%; padding: 12px; margin: 8px 0; background: var(--panel-bg); color: #fff; border: 1px solid var(--border-color); cursor: pointer; border-radius: 4px; font-weight: bold; transition: 0.2s; }
+        .menu-btn:hover { background: #2c3a49; border-color: var(--primary-color); }
+        .stats-box { border: 1px solid var(--border-color); padding: 15px; margin-bottom: 15px; background: #1a1a1d; border-radius: 4px; }
+        .stat-row { display: flex; justify-content: space-between; margin: 5px 0; }
         
-        .stats-box { border: 1px solid var(--border-color); padding: 12px; margin-bottom: 15px; border-radius: 8px; background: var(--panel-bg); }
-        .stat-row { display: flex; justify-content: space-between; margin: 6px 0; font-weight: bold; }
+        .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .equip-slot { border: 1px solid #555; padding: 10px; background: #222; border-radius: 4px; position: relative; }
+        .equip-slot span.slot-name { color: #888; font-size: 0.8em; display: block; margin-bottom: 5px;}
+        .effect-text { color: #fca311; font-size: 0.85em; display: block; margin-top: 5px;}
         
-        .nav-tabs { display: flex; justify-content: space-around; margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
-        .nav-tabs button { flex: 1; margin: 0 5px; padding: 10px; background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 5px; cursor: pointer;}
-        .nav-tabs button:hover, .nav-tabs button.active-tab { background: var(--primary-color); color: #000; font-weight: bold; }
+        .log-box { height: 250px; overflow-y: auto; border: 1px solid var(--border-color); padding: 12px; background: #000; color: #aaa; margin-bottom: 15px; line-height: 1.6; font-family: monospace; }
+        h2, h3 { text-align: center; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
         
-        .point-allocator { display: flex; align-items: center; margin: 10px 0; justify-content: space-between; background: #222; padding: 10px; border-radius: 5px; border: 1px solid #444;}
-        .point-allocator button { width: 35px; height: 35px; border-radius: 5px; border: 1px solid var(--primary-color); background: var(--btn-bg); color: #fff; cursor: pointer; font-size: 18px; }
-        
-        .log-box { height: 180px; overflow-y: auto; border: 1px solid var(--border-color); padding: 12px; background: #000; color: #aaa; font-family: monospace; font-size: 14px; margin-bottom: 15px; line-height: 1.5; border-radius: 5px; }
-        
-        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .action-btn { padding: 12px; font-size: 15px; border-radius: 5px; cursor: pointer; border: 1px solid #555; font-weight: bold; transition: 0.2s; }
-        .action-btn:hover { transform: scale(1.02); }
-        
-        /* 戰鬥意圖 UI */
-        .intent-box { text-align: center; font-size: 1.2em; font-weight: bold; padding: 10px; background: #310a0f; border: 1px solid var(--danger-color); border-radius: 5px; margin-bottom: 10px; color: var(--intent-color); animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 76, 76, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(255, 76, 76, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 76, 76, 0); } }
-        
-        /* Roguelite 獎勵卡片 */
-        .loot-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        .loot-card { background: #1f2833; border: 2px solid var(--highlight); padding: 15px; border-radius: 8px; cursor: pointer; text-align: center; }
-        .loot-card:hover { background: #332d20; }
-        
-        .turn-header { text-align: center; font-size: 1.3em; font-weight: bold; color: var(--highlight); margin-bottom: 10px; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px; }
+        .rarity-common { color: #e0e0e0; }
+        .rarity-rare { color: #4cc9f0; }
+        .rarity-epic { color: #9d4edd; }
+        .rarity-legendary { color: #fca311; }
     </style>
 </head>
 <body>
 
 <div id="game-container">
-    
-    <!-- 標題介面 -->
-    <div id="screen-title" class="screen active">
-        <h1 style="font-size: 2.8em; text-shadow: 0 0 15px var(--primary-color);">時間裂縫<br><span style="font-size: 0.4em; color:#aaa;">Roguelite 戰術版</span></h1>
-        <button class="menu-btn" onclick="app.navigate('screen-char')">開始新循環 (固定20回合)</button>
-        <button class="menu-btn" onclick="alert('存檔功能已包含在自動紀錄中，目前從新局開始展示機制。')" style="border-color: #aaa; color: #aaa;">讀取進度</button>
+    <div id="screen-char" class="screen active">
+        <h2>選擇你的英雄</h2>
+        <div id="char-selection-list" class="grid-2col"></div>
     </div>
 
-    <!-- 角色選擇 -->
-    <div id="screen-char" class="screen">
-        <h2>選擇戰術流派</h2>
-        <div id="char-selection-list"></div>
-        <button class="menu-btn" onclick="app.startGame()" style="background-color: var(--primary-color); color:#000; font-size: 1.2em; margin-top: 20px;">進入整備營地</button>
-    </div>
-
-    <!-- 整備營地 (Hub) -->
     <div id="screen-hub" class="screen">
-        <div class="turn-header">整備營地 (當前進度：第 <span id="hub-turn"></span> 回合)</div>
+        <h2>裝備與狀態面板</h2>
         <div class="stats-box" id="player-hud"></div>
         
-        <div class="nav-tabs">
-            <button onclick="app.switchHubTab('camp')">營地行動</button>
-            <button onclick="app.switchHubTab('points')">冥想升級</button>
-            <button onclick="app.switchHubTab('modules')">武裝模組</button>
-        </div>
-        
-        <!-- 營地行動 -->
-        <div id="tab-camp" class="tab-content">
-            <h3 style="color:#ccc;">選擇本回合的行動：</h3>
-            <button class="menu-btn" style="border-color: var(--danger-color);" onclick="app.triggerExploration()">🚪 深入裂縫 (消耗1回合進行戰鬥)</button>
-            <button class="menu-btn" style="border-color: var(--highlight);" onclick="app.restCamp()">⛺ 營地休息 (恢復 30% HP/MP，消耗1回合)</button>
-            <p style="color:#888; font-size:0.9em; text-align:center;">提示：每 10 回合將遭遇裂縫核心 Boss。</p>
+        <div class="grid-2col" style="margin-bottom: 15px;">
+            <div class="equip-slot"><span class="slot-name">⚔️ 核心武器</span><div id="eq-weapon"></div></div>
+            <div class="equip-slot"><span class="slot-name">🪖 頭部防具</span><div id="eq-head"></div></div>
+            <div class="equip-slot"><span class="slot-name">🦺 身體防具</span><div id="eq-body"></div></div>
+            <div class="equip-slot"><span class="slot-name">🧤 手部防具</span><div id="eq-arms"></div></div>
+            <div class="equip-slot"><span class="slot-name">🥾 腿部防具</span><div id="eq-legs"></div></div>
         </div>
 
-        <!-- 冥想升級 -->
-        <div id="tab-points" class="tab-content" style="display:none;">
-            <h3 style="color: var(--highlight);">未分配天賦點: <span id="talent-points"></span></h3>
-            <div class="point-allocator"><span>體魄 (最大HP +20)</span> <button onclick="app.upgradeStat('maxHp')">+</button></div>
-            <div class="point-allocator"><span>精神 (最大MP +15)</span> <button onclick="app.upgradeStat('maxMp')">+</button></div>
-            <div class="point-allocator"><span>力量 (基礎ATK +3)</span> <button onclick="app.upgradeStat('atk')">+</button></div>
-            <div class="point-allocator"><span>護甲 (基礎DEF +2)</span> <button onclick="app.upgradeStat('def')">+</button></div>
-        </div>
-
-        <!-- 武裝模組 -->
-        <div id="tab-modules" class="tab-content" style="display:none;">
-            <h3 style="color: var(--primary-color);">核心武器：<span id="core-weapon"></span></h3>
-            <p style="color:#aaa; font-size:0.9em;">(武器將不會被替換，而是透過安裝模組來改變流派)</p>
-            <div id="inv-modules" class="stats-box" style="min-height: 100px;"></div>
-            <h3>行囊道具</h3>
-            <div id="inv-items"></div>
+        <div style="display: flex; gap: 10px;">
+            <button class="menu-btn" onclick="app.randomizeEquip()" style="border-color: #2a9d8f;">🎲 隨機替換全身裝備</button>
+            <button class="menu-btn" onclick="app.testCombat()" style="border-color: #e63946;">🔥 進入模擬戰鬥</button>
         </div>
     </div>
 
-    <!-- 戰鬥介面 -->
     <div id="screen-combat" class="screen">
-        <h2 id="combat-title" class="turn-header">遭遇戰</h2>
-        
-        <!-- 玩家狀態 -->
-        <div class="stats-box" id="combat-hud"></div>
-        
-        <!-- 敵人意圖與狀態 -->
-        <div class="intent-box" id="enemy-intent">敵方意圖：讀取中...</div>
-        
-        <div class="stats-box" style="border-color: #e63946; background-color: #2a0808;">
-            <div class="stat-row"><span id="enemy-name" style="color: #ff4c4c; font-size: 1.2em;"></span> <span id="enemy-status" style="color:var(--primary-color)"></span></div>
-            <div class="stat-row"><span style="color:#ffb3ba;">HP: <span id="enemy-hp"></span></span> <span>護盾: <span id="enemy-block" style="color:#a8dadc;">0</span></span></div>
-        </div>
-
+        <h2>戰鬥日誌 (觀看裝備特效觸發)</h2>
         <div class="log-box" id="combat-log"></div>
-
-        <!-- 戰鬥指令 -->
-        <div class="action-grid" id="combat-actions">
-            <button class="action-btn" onclick="app.combatAction('sword')" style="background-color: #2b2d42; color:#fff;">⚔️ 武器打擊<br><small>物理傷害 (受敵防禦/護盾影響)</small></button>
-            <button class="action-btn" onclick="app.combatAction('magic')" style="background-color: #1d3557; color:#fff;">🪄 消耗法術<br><small>耗10 MP (無視護盾與部分防禦)</small></button>
-            <button class="action-btn" onclick="app.combatAction('defend')" style="background-color: #2a9d8f; color:#fff;">🛡️ 絕對防禦<br><small>本回合獲得 (DEF x 3) 的臨時護盾</small></button>
-            <button class="action-btn" onclick="app.useItemInCombat()" style="background-color: #5c4d0c; color:#fff;">🎒 戰術道具<br><small>使用行囊內的輔助道具</small></button>
-        </div>
-    </div>
-
-    <!-- 戰利品選擇 (Roguelite) -->
-    <div id="screen-loot" class="screen">
-        <h2>戰鬥勝利！選擇你的戰利品</h2>
-        <p style="text-align:center; color:#aaa;">(三選一，強化你的流派)</p>
-        <div class="loot-grid" id="loot-options"></div>
-    </div>
-
-    <!-- 結算介面 -->
-    <div id="screen-result" class="screen">
-        <h1 id="result-title" style="font-size:3em;">遊戲結束</h1>
-        <div class="stats-box">
-            <p>最終等級: <span id="res-lv" style="color:var(--highlight)"></span></p>
-            <p>存活回合: <span id="res-turn" style="color:var(--highlight)"></span> / 20</p>
-            <h3 style="margin-top:15px;">最終分數: <span id="res-score" style="color: var(--primary-color);"></span></h3>
-        </div>
-        <button class="menu-btn" onclick="location.reload()">再試一次</button>
+        <button class="menu-btn" onclick="app.navigate('screen-hub')">返回裝備庫</button>
     </div>
 </div>
 
 <script>
 /**
- * 1. 角色初始資料 (強調專屬武器)
+ * 完整軍械庫 (6 角色, 20 武器, 40 裝備, 10 道具)
  */
-const CHARACTERS = [
-    { id: 'warrior', name: '重裝戰士', maxHp: 150, hp: 150, maxMp: 40, mp: 40, atk: 15, def: 8, weapon: '雙手巨劍', ability: '高血量與高防禦，適合硬扛重擊。' },
-    { id: 'mage', name: '秘法學者', maxHp: 90, hp: 90, maxMp: 120, mp: 120, atk: 12, def: 4, weapon: '聚焦法杖', ability: '法術爆發極高，但極度依賴防禦預判。' },
-    { id: 'rogue', name: '暗影刺客', maxHp: 110, hp: 110, maxMp: 60, mp: 60, atk: 18, def: 5, weapon: '動力雙刃', ability: '基礎攻擊力極高，講求速戰速決。' }
-];
+const DB = {
+    characters: [
+        { id: 'c1', name: '重甲兵', hp: 250, mp: 20, atk: 12, def: 15, spd: 5 },
+        { id: 'c2', name: '秘法使', hp: 90, mp: 150, atk: 5, def: 3, spd: 12 },
+        { id: 'c3', name: '夜行刺客', hp: 110, mp: 40, atk: 18, def: 4, spd: 20 },
+        { id: 'c4', name: '聖騎士', hp: 180, mp: 80, atk: 10, def: 12, spd: 8 },
+        { id: 'c5', name: '魔劍士', hp: 130, mp: 90, atk: 14, def: 8, spd: 15 },
+        { id: 'c6', name: '戰術醫護兵', hp: 140, mp: 100, atk: 8, def: 10, spd: 10 }
+    ],
+    weapons: {
+        physical: [
+            { id: 'wp1', name: '制式軍用匕首', atk: 10, effect: { type: 'spd_up', val: 5, desc: '速度 +5' } },
+            { id: 'wp2', name: '高頻震盪刀', atk: 25, effect: { type: 'bleed', val: 5, desc: '每次攻擊附加 5 點流血' } },
+            { id: 'wp3', name: '鎢鋼破甲錘', atk: 35, effect: { type: 'ignore_def', val: 0.4, desc: '無視目標 40% 防禦' } },
+            { id: 'wp4', name: '動力鏈鋸劍', atk: 30, effect: { type: 'crit_chance', val: 0.15, desc: '+15% 爆擊率' } },
+            { id: 'wp5', name: '天弓三型複合弓', atk: 28, effect: { type: 'first_strike', val: 1.5, desc: '第一回合傷害提升 50%' } },
+            { id: 'wp6', name: '戰術散彈槍', atk: 40, effect: { type: 'splash', val: 0.2, desc: '20% 濺射傷害' } },
+            { id: 'wp7', name: 'M1A2T 縮退滑膛砲', atk: 60, effect: { type: 'spd_down', val: -10, desc: '攻擊極高，但速度 -10' } },
+            { id: 'wp8', name: '刺客袖劍', atk: 15, effect: { type: 'execute', val: 0.1, desc: '秒殺生命低於 10% 的非Boss敵人' } },
+            { id: 'wp9', name: '重力戰斧', atk: 45, effect: { type: 'stun', val: 0.1, desc: '10% 機率擊暈敵人' } },
+            { id: 'wp10', name: '血腥收割鐮', atk: 32, effect: { type: 'vampire', val: 0.3, desc: '吸取造成傷害 30% 的生命' } }
+        ],
+        magic: [
+            { id: 'wm1', name: '學徒法杖', atk: 12, effect: { type: 'mp_regen', val: 5, desc: '每回合回復 5 MP' } },
+            { id: 'wm2', name: '電漿發射器', atk: 38, effect: { type: 'burn', val: 10, desc: '賦予燃燒，每回合 10 傷害' } },
+            { id: 'wm3', name: 'E-2K 預警法杖', atk: 20, effect: { type: 'dodge_up', val: 0.2, desc: '提供預警，閃避率 +20%' } },
+            { id: 'wm4', name: '虛空水晶', atk: 35, effect: { type: 'mp_drain', val: 0.5, desc: '攻擊時吸取敵方魔力' } },
+            { id: 'wm5', name: 'THAAD 導引雷射', atk: 42, effect: { type: 'never_miss', val: 1, desc: '攻擊絕對命中，無視閃避' } },
+            { id: 'wm6', name: '冰霜之核', atk: 28, effect: { type: 'slow', val: 0.3, desc: '降低敵方 30% 速度' } },
+            { id: 'wm7', name: 'SIC/XE 組譯核心', atk: 30, effect: { type: 'two_pass', val: 2, desc: '有 20% 機率連續攻擊兩次 (Two-Pass)' } },
+            { id: 'wm8', name: '雷霆權杖', atk: 45, effect: { type: 'chain_lightning', val: 3, desc: '閃電鏈彈射' } },
+            { id: 'wm9', name: '死靈聖典', atk: 25, effect: { type: 'summon_skeleton', val: 1, desc: '戰鬥開始召喚骷髏擋刀' } },
+            { id: 'wm10', name: '超新星爆發裝置', atk: 80, effect: { type: 'self_dmg', val: 20, desc: '毀滅性威力，但每次使用自損 20 HP' } }
+        ]
+    },
+    equips: {
+        head: [
+            { id: 'h1', set: '步兵', name: '標準鋼盔', def: 3, effect: { type: 'hp_up', val: 20, desc: '最大 HP +20' } },
+            { id: 'h2', set: '戰術', name: '夜視護目鏡', def: 2, effect: { type: 'accuracy', val: 0.1, desc: '命中率 +10%' } },
+            { id: 'h3', set: '重甲', name: 'F-35 全景感知頭盔', def: 8, effect: { type: 'dodge', val: 0.15, desc: '全景感知，閃避 +15%' } },
+            { id: 'h4', set: '靈能', name: '冥想頭環', def: 1, effect: { type: 'max_mp_up', val: 30, desc: '最大 MP +30' } },
+            { id: 'h5', set: '刺客', name: '暗影兜帽', def: 2, effect: { type: 'crit_dmg', val: 0.5, desc: '爆擊傷害 +50%' } },
+            { id: 'h6', set: '醫護', name: '戰地醫官帽', def: 3, effect: { type: 'heal_boost', val: 0.3, desc: '治療效果提升 30%' } },
+            { id: 'h7', set: '吸血', name: '猩紅面具', def: 4, effect: { type: 'vampire_boost', val: 0.2, desc: '吸血效率提升 20%' } },
+            { id: 'h8', set: '賽博', name: '神經鏈接插槽', def: 5, effect: { type: 'spd_up', val: 8, desc: '神經傳導加速，速度 +8' } },
+            { id: 'h9', set: '火砲', name: '火控雷達天線', def: 6, effect: { type: 'atk_up', val: 10, desc: '火力控制，攻擊力 +10' } },
+            { id: 'h10', set: '指揮', name: '將官貝雷帽', def: 4, effect: { type: 'all_stats', val: 2, desc: '全屬性 +2' } }
+        ],
+        body: [
+            { id: 'b1', set: '步兵', name: '防彈背心', def: 8, effect: { type: 'dmg_reduce', val: 0.05, desc: '受傷減免 5%' } },
+            { id: 'b2', set: '戰術', name: '輕量化迷彩服', def: 5, effect: { type: 'spd_up', val: 10, desc: '速度 +10' } },
+            { id: 'b3', set: '重甲', name: 'M1A2T 反應裝甲', def: 25, effect: { type: 'reflect', val: 0.2, desc: '反彈 20% 受到傷害' } },
+            { id: 'b4', set: '靈能', name: '法力編織長袍', def: 4, effect: { type: 'mp_cost_down', val: 0.2, desc: '技能 MP 消耗減少 20%' } },
+            { id: 'b5', set: '刺客', name: '夜行緊身衣', def: 6, effect: { type: 'stealth', val: 1, desc: '開戰首回合隱身免傷' } },
+            { id: 'b6', set: '醫護', name: '自癒奈米外衣', def: 10, effect: { type: 'hp_regen', val: 15, desc: '每回合回復 15 HP' } },
+            { id: 'b7', set: '吸血', name: '德古拉風衣', def: 12, effect: { type: 'hp_leech_aura', val: 5, desc: '吸取周圍敵人生命' } },
+            { id: 'b8', set: '賽博', name: '光學迷彩發生器', def: 8, effect: { type: 'dodge', val: 0.25, desc: '閃避率 +25%' } },
+            { id: 'b9', set: '火砲', name: '彈藥掛載胸甲', def: 15, effect: { type: 'atk_up', val: 15, desc: '物理攻擊力 +15' } },
+            { id: 'b10', set: '指揮', name: '統帥大衣', def: 12, effect: { type: 'status_res', val: 0.5, desc: '異常狀態抗性 +50%' } }
+        ],
+        arms: [
+            { id: 'a1', set: '步兵', name: '戰術手套', def: 2, effect: { type: 'atk_up', val: 3, desc: '攻擊力 +3' } },
+            { id: 'a2', set: '戰術', name: '快速拔槍腕帶', def: 1, effect: { type: 'spd_up', val: 5, desc: '速度 +5' } },
+            { id: 'a3', set: '重甲', name: '愛國者攔截盾腕', def: 10, effect: { type: 'block', val: 0.15, desc: '15% 機率完全格擋傷害' } },
+            { id: 'a4', set: '靈能', name: '符文護腕', def: 2, effect: { type: 'magic_up', val: 8, desc: '魔法攻擊力 +8' } },
+            { id: 'a5', set: '刺客', name: '暗器護臂', def: 3, effect: { type: 'counter', val: 0.2, desc: '閃避後 20% 機率反擊' } },
+            { id: 'a6', set: '醫護', name: '無菌手術手套', def: 2, effect: { type: 'item_boost', val: 0.5, desc: '道具恢復量 +50%' } },
+            { id: 'a7', set: '吸血', name: '鮮血護手', def: 4, effect: { type: 'max_hp_up', val: 40, desc: '最大 HP +40' } },
+            { id: 'a8', set: '賽博', name: '動力外骨骼手臂', def: 6, effect: { type: 'atk_up', val: 12, desc: '攻擊力 +12' } },
+            { id: 'a9', set: '火砲', name: '後座力緩衝裝置', def: 5, effect: { type: 'crit_chance', val: 0.1, desc: '穩定射擊，爆擊率 +10%' } },
+            { id: 'a10', set: '指揮', name: '指令終端手錶', def: 4, effect: { type: 'support_call', val: 1, desc: '有機率呼叫火力支援' } }
+        ],
+        legs: [
+            { id: 'l1', set: '步兵', name: '軍用戰鬥靴', def: 3, effect: { type: 'spd_up', val: 3, desc: '速度 +3' } },
+            { id: 'l2', set: '戰術', name: '跑酷運動鞋', def: 1, effect: { type: 'dodge', val: 0.1, desc: '閃避率 +10%' } },
+            { id: 'l3', set: '重甲', name: 'Merkava 履帶護腿', def: 12, effect: { type: 'knockback_res', val: 1, desc: '重如泰山，免疫擊退與暈眩' } },
+            { id: 'l4', set: '靈能', name: '懸浮綁腿', def: 2, effect: { type: 'spd_up', val: 8, desc: '速度 +8' } },
+            { id: 'l5', set: '刺客', name: '無聲軟底鞋', def: 2, effect: { type: 'stealth_up', val: 1, desc: '強化隱匿效果' } },
+            { id: 'l6', set: '醫護', name: '急行軍護膝', def: 4, effect: { type: 'hp_regen', val: 5, desc: '每回合回復 5 HP' } },
+            { id: 'l7', set: '吸血', name: '蝙蝠長靴', def: 5, effect: { type: 'jump_up', val: 1, desc: '跳躍力提升' } },
+            { id: 'l8', set: '賽博', name: '氣墊推進靴', def: 4, effect: { type: 'spd_up', val: 15, desc: '速度 +15' } },
+            { id: 'l9', set: '火砲', name: '駐地固定樁', def: 8, effect: { type: 'atk_up', val: 5, desc: '犧牲速度換取攻擊 +5' } },
+            { id: 'l10', set: '指揮', name: '儀仗皮靴', def: 5, effect: { type: 'exp_boost', val: 0.1, desc: '獲得經驗值 +10%' } }
+        ]
+    },
+    items: [
+        { id: 'i1', name: '馴鹿特訓口糧', type: 'heal', effect: { hp: 50 }, desc: '恢復 50 HP，充滿了熬夜特訓的滋味。' },
+        { id: 'i2', name: '爪哇 (Java) 咖啡豆', type: 'heal', effect: { mp: 40 }, desc: '恢復 40 MP，物件導向工程師的最愛。' },
+        { id: 'i3', name: '全效醫療箱', type: 'heal', effect: { hp: 100, mp: 50 }, desc: '大量恢復生命與魔力。' },
+        { id: 'i4', name: '戰術破片手雷', type: 'dmg', effect: { dmg: 80 }, desc: '對敵方造成 80 點物理傷害。' },
+        { id: 'i5', name: 'EMP 脈衝彈', type: 'debuff', effect: { type: 'stun' }, desc: '高機率癱瘓機械與護盾一回合。' },
+        { id: 'i6', name: '狂暴興奮劑', type: 'buff', effect: { atk_up: 30 }, desc: '三回合內攻擊力提升 30 點。' },
+        { id: 'i7', name: '光學煙霧彈', type: 'buff', effect: { dodge_up: 0.5 }, desc: '一回合內閃避率提升 50%。' },
+        { id: 'i8', name: '奈米修復蟲群', type: 'buff', effect: { regen: 20 }, desc: '持續三回合，每回合恢復 20 HP。' },
+        { id: 'i9', name: '時間停滯沙漏', type: 'special', effect: { extra_turn: 1 }, desc: '立刻獲得一個額外行動回合。' },
+        { id: 'i10', name: '緊急脫離裝置', type: 'special', effect: { flee: 1 }, desc: '必定從戰鬥中成功撤退。' }
+    ]
+};
 
-/**
- * 2. 模組庫 (Roguelite 升級選項)
- */
-const MODULE_POOL = [
-    { id: 'vampire', name: '🩸 嗜血模組', desc: '武器打擊造成傷害時，回復 30% 傷害值的 HP。' },
-    { id: 'pierce', name: '🗡️ 破甲模組', desc: '武器打擊無視敵人 50% 的護甲防禦。' },
-    { id: 'echo', name: '✨ 迴響模組', desc: '施放法術時，有 40% 機率無消耗額外施放一次。' },
-    { id: 'guardian', name: '🛡️ 守護模組', desc: '每次戰鬥開始時，自動獲得 20 點護盾。' },
-    { id: 'overload', name: '⚡ 超載模組', desc: '基礎攻擊力 +8，但每次攻擊自己扣除 3 HP。' }
-];
-
-/**
- * 3. 玩家類別
- */
-class Player {
-    constructor(data) {
-        Object.assign(this, data);
-        this.lv = 1; 
-        this.exp = 0; 
-        this.expNeeded = 40; // 大幅降低初始升級門檻
-        this.points = 0; 
-        this.score = 0; 
-        this.items = [{name: '緊急治療藥劑', type: 'recover', effect: {hp: 50}, count: 2}]; // 開局保命符
-        this.modules = []; // 已安裝模組
-        this.block = 0; // 戰鬥臨時護盾
-    }
-
-    gainExp(amount) {
-        this.exp += amount;
-        let leveledUp = false;
-        // 修正升級曲線：倍率改為 1.3，讓 20 回合內能升到 7-10 級
-        while (this.exp >= this.expNeeded) {
-            this.exp -= this.expNeeded;
-            this.lv++;
-            this.points++;
-            this.expNeeded = Math.floor(this.expNeeded * 1.3);
-            this.maxHp += 10; this.hp += 10;
-            this.maxMp += 5; this.mp += 5;
-            this.atk += 2; this.def += 1;
-            leveledUp = true;
-        }
-        return leveledUp;
-    }
-}
-
-/**
- * 4. 敵人 AI 類別 (實作預判意圖)
- */
-class Enemy {
-    constructor(turn, isBoss) {
-        this.isBoss = isBoss;
-        let scale = turn;
-        if (isBoss) {
-            this.name = turn === 10 ? '裂縫守門人 (Boss)' : '時空吞噬者 (Final Boss)';
-            this.maxHp = 150 + scale * 15;
-            this.atk = 15 + scale * 2;
-            this.def = 8 + scale;
-            this.exp = 200;
-        } else {
-            const types = ['失控機甲', '深淵腐屍', '虛空獵犬'];
-            this.name = types[Math.floor(Math.random() * types.length)] + ` Lv.${scale}`;
-            this.maxHp = 40 + scale * 10;
-            this.atk = 8 + scale * 1.5;
-            this.def = 2 + scale * 0.5;
-            this.exp = 30 + scale * 5; // 提高單場經驗值
-        }
-        this.hp = this.maxHp;
-        this.block = 0;
-        this.intent = null;
-        this.state = 'normal';
-    }
-
-    // 產生下回合意圖
-    planAction() {
-        this.block = 0; // 敵方每回合重置護盾
-        const rand = Math.random();
-        
-        if (this.state === 'charging') {
-            // 上回合蓄力，這回合必定重擊
-            this.intent = { type: 'heavy', dmg: Math.floor(this.atk * 2.2), text: '⚠️ 致命毀滅重擊！' };
-            this.state = 'normal';
-        } else if (rand < 0.3) {
-            // 防禦姿態
-            let genBlock = Math.floor(this.def * 4);
-            this.intent = { type: 'defend', block: genBlock, text: `🛡️ 啟動防禦矩陣 (預計獲得 ${genBlock} 護盾)` };
-        } else if (rand < 0.6 || this.isBoss === false) {
-            // 一般攻擊
-            this.intent = { type: 'attack', dmg: Math.floor(this.atk), text: `⚔️ 一般攻擊 (預計 ${Math.floor(this.atk)} 傷害)` };
-        } else {
-            // Boss 或強怪有機率蓄力
-            this.intent = { type: 'charge', text: '⚡ 能量極速充能中...' };
-            this.state = 'charging';
-        }
-    }
-
-    executeAction(player, logger) {
-        if (this.hp <= 0) return;
-        
-        if (this.intent.type === 'attack' || this.intent.type === 'heavy') {
-            let baseDmg = this.intent.dmg;
-            // 玩家護甲減免
-            let actualDmg = Math.max(1, baseDmg - player.def);
-            
-            // 扣除玩家護盾
-            if (player.block > 0) {
-                if (player.block >= actualDmg) {
-                    player.block -= actualDmg;
-                    logger(`<span style="color:#a8dadc">你的護盾完美格擋了 ${actualDmg} 點傷害！</span>`);
-                    actualDmg = 0;
-                } else {
-                    actualDmg -= player.block;
-                    logger(`<span style="color:#a8dadc">護盾吸收了 ${player.block} 點傷害後碎裂！</span>`);
-                    player.block = 0;
-                }
-            }
-            
-            if (actualDmg > 0) {
-                player.hp -= actualDmg;
-                logger(`<span style="color:var(--danger-color)">敵人對你造成了 ${actualDmg} 點傷害！</span>`);
-            }
-        } else if (this.intent.type === 'defend') {
-            this.block += this.intent.block;
-            logger(`<span style="color:#a8dadc">敵人獲得了 ${this.intent.block} 點護盾。</span>`);
-        } else if (this.intent.type === 'charge') {
-            logger(`<span style="color:var(--highlight)">敵人正在瘋狂聚集周圍的能量！下回合極度危險！</span>`);
-        }
-    }
-}
-
-/**
- * 5. 遊戲主控核心
- */
 class GameApp {
     constructor() {
-        this.state = { turn: 1 };
-        this.initCharSelection();
+        this.player = null;
+        this.renderCharSelection();
     }
 
     navigate(screenId) {
@@ -316,295 +178,186 @@ class GameApp {
         document.getElementById(screenId).classList.add('active');
     }
 
-    switchHubTab(tabId) {
-        document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-        document.getElementById(`tab-${tabId}`).style.display = 'block';
-        this.updateHUD();
-    }
-
-    initCharSelection() {
+    renderCharSelection() {
         const container = document.getElementById('char-selection-list');
-        container.innerHTML = '';
-        CHARACTERS.forEach(char => {
-            const div = document.createElement('div');
-            div.className = 'stats-box'; div.style.cursor = 'pointer';
-            div.innerHTML = `
-                <h3 style="margin:0 0 5px 0; color:var(--primary-color)">${char.name}</h3>
-                <div style="font-size:0.9em; margin-bottom:10px;"><b>專屬武器：</b>${char.weapon}</div>
-                <div style="font-size:0.85em; color:#aaa;">${char.ability}</div>
+        DB.characters.forEach(char => {
+            const btn = document.createElement('div');
+            btn.className = 'stats-box'; btn.style.cursor = 'pointer';
+            btn.innerHTML = `
+                <h3 style="margin:0 0 10px 0;">${char.name}</h3>
+                <small>HP: ${char.hp} | MP: ${char.mp}<br>ATK: ${char.atk} | DEF: ${char.def} | SPD: ${char.spd}</small>
             `;
-            div.onclick = () => { this.selectedChar = char; this.startGame(); };
-            container.appendChild(div);
+            btn.onclick = () => this.startGame(char);
+            container.appendChild(btn);
         });
     }
 
-    startGame() {
-        if(!this.selectedChar) return;
-        this.player = new Player(JSON.parse(JSON.stringify(this.selectedChar)));
-        this.state.turn = 1;
-        this.updateHUD();
+    startGame(charData) {
+        this.player = JSON.parse(JSON.stringify(charData));
+        this.randomizeEquip();
         this.navigate('screen-hub');
-        this.switchHubTab('camp');
     }
 
-    // --- 營地階段 (Hub) ---
-    updateHUD() {
-        const p = this.player;
-        const renderHUD = (containerId) => {
-            document.getElementById(containerId).innerHTML = `
-                <div class="stat-row"><span>Lv: ${p.lv}</span> <span>EXP: ${p.exp}/${p.expNeeded}</span> <span>HP: <span style="color:#ffb3ba">${p.hp}/${p.maxHp}</span></span></div>
-                <div class="stat-row"><span>MP: <span style="color:#a8dadc">${p.mp}/${p.maxMp}</span></span> <span>ATK: ${p.atk}</span> <span>DEF: ${p.def}</span></div>
-            `;
+    // 隨機抽選裝備
+    getRandomItem(array) {
+        return array[Math.floor(Math.random() * array.length)];
+    }
+
+    randomizeEquip() {
+        // 隨機選物理或魔法武器
+        const isPhys = Math.random() > 0.5;
+        const weaponPool = isPhys ? DB.weapons.physical : DB.weapons.magic;
+        
+        this.player.equip = {
+            weapon: this.getRandomItem(weaponPool),
+            head: this.getRandomItem(DB.equips.head),
+            body: this.getRandomItem(DB.equips.body),
+            arms: this.getRandomItem(DB.equips.arms),
+            legs: this.getRandomItem(DB.equips.legs)
         };
-        if(document.getElementById('screen-hub').classList.contains('active')) renderHUD('player-hud');
-        if(document.getElementById('screen-combat').classList.contains('active')) renderHUD('combat-hud');
-        
-        document.getElementById('hub-turn').innerText = this.state.turn;
-        document.getElementById('talent-points').innerText = p.points;
-        document.getElementById('core-weapon').innerText = p.weapon;
-        
-        // 渲染模組
-        const modBox = document.getElementById('inv-modules');
-        modBox.innerHTML = p.modules.length === 0 ? '<p style="color:#555;">尚未安裝任何模組</p>' : '';
-        p.modules.forEach(m => {
-            modBox.innerHTML += `<div style="border-left:3px solid var(--highlight); padding-left:10px; margin-bottom:5px;"><b>${m.name}</b><br><small>${m.desc}</small></div>`;
-        });
-        
-        // 渲染道具
-        const itemBox = document.getElementById('inv-items');
-        itemBox.innerHTML = '';
-        p.items.forEach((item, index) => {
-            const btn = document.createElement('button');
-            btn.className = 'menu-btn';
-            btn.innerText = `${item.name} x${item.count}`;
-            itemBox.appendChild(btn);
-        });
+        this.updateHub();
     }
 
-    upgradeStat(stat) {
-        if (this.player.points <= 0) { alert('天賦點不足！'); return; }
-        this.player.points--;
-        if (stat === 'maxHp') { this.player.maxHp += 20; this.player.hp += 20; }
-        if (stat === 'maxMp') { this.player.maxMp += 15; this.player.mp += 15; }
-        if (stat === 'atk') this.player.atk += 3;
-        if (stat === 'def') this.player.def += 2;
-        this.updateHUD();
-    }
+    getCalculatedStats() {
+        let stats = { 
+            maxHp: this.player.hp, maxMp: this.player.mp, 
+            atk: this.player.atk, def: this.player.def, spd: this.player.spd,
+            effects: [] 
+        };
 
-    restCamp() {
-        const healHp = Math.floor(this.player.maxHp * 0.3);
-        const healMp = Math.floor(this.player.maxMp * 0.3);
-        this.player.hp = Math.min(this.player.maxHp, this.player.hp + healHp);
-        this.player.mp = Math.min(this.player.maxMp, this.player.mp + healMp);
-        alert(`營地休息：恢復 ${healHp} HP 與 ${healMp} MP。`);
-        this.advanceTurn();
-    }
-
-    advanceTurn() {
-        this.state.turn++;
-        if (this.state.turn > 20) {
-            this.gameOver(true);
-            return;
+        for (const [slot, item] of Object.entries(this.player.equip)) {
+            if (!item) continue;
+            if (item.def) stats.def += item.def;
+            if (item.atk) stats.atk += item.atk;
+            if (item.effect) {
+                stats.effects.push(item.effect);
+                if (item.effect.type === 'atk_up') stats.atk += item.effect.val;
+                if (item.effect.type === 'spd_up') stats.spd += item.effect.val;
+                if (item.effect.type === 'spd_down') stats.spd += item.effect.val;
+                if (item.effect.type === 'hp_up') stats.maxHp += item.effect.val;
+                if (item.effect.type === 'max_mp_up') stats.maxMp += item.effect.val;
+                if (item.effect.type === 'all_stats') {
+                    stats.atk += item.effect.val; stats.def += item.effect.val; stats.spd += item.effect.val;
+                }
+            }
         }
-        this.updateHUD();
+        return stats;
     }
 
-    // --- 戰鬥階段 ---
-    triggerExploration() {
-        const isBoss = (this.state.turn === 10 || this.state.turn === 20);
-        this.currentEnemy = new Enemy(this.state.turn, isBoss);
-        this.player.block = 0;
-        
-        // 檢查開局守護模組
-        if (this.hasModule('guardian')) {
-            this.player.block += 20;
-        }
+    updateHub() {
+        const stats = this.getCalculatedStats();
+        document.getElementById('player-hud').innerHTML = `
+            <div class="stat-row"><span>最大 HP: ${stats.maxHp}</span> <span>最大 MP: ${stats.maxMp}</span></div>
+            <div class="stat-row"><span>總 ATK: <span style="color:#fca311">${stats.atk}</span></span> <span>總 DEF: <span style="color:#4cc9f0">${stats.def}</span></span> <span>SPD: ${stats.spd}</span></div>
+        `;
 
-        this.navigate('screen-combat');
-        document.getElementById('combat-log').innerHTML = '進入戰鬥！觀察敵人的意圖並作出決策。<br>';
-        document.getElementById('combat-title').innerText = isBoss ? "⚠️ 裂縫核心 Boss ⚠️" : "遭遇戰";
-        document.getElementById('combat-actions').style.display = 'grid';
-        
-        this.currentEnemy.planAction();
-        this.updateCombatUI();
-    }
+        const renderEquip = (slotId, item) => {
+            const el = document.getElementById(slotId);
+            if (!item) return;
+            const setTag = item.set ? `<span style="color:#aaa; font-size:0.8em;">[${item.set}套裝]</span> ` : '';
+            el.innerHTML = `<strong>${setTag}${item.name}</strong><br><span class="effect-text">★ ${item.effect.desc}</span>`;
+        };
 
-    updateCombatUI() {
-        this.updateHUD(); // 更新玩家基本狀態
-        const e = this.currentEnemy;
-        
-        // 敵人狀態
-        document.getElementById('enemy-name').innerText = e.name;
-        document.getElementById('enemy-hp').innerText = `${Math.floor(e.hp)}/${e.maxHp}`;
-        document.getElementById('enemy-block').innerText = e.block;
-        document.getElementById('enemy-status').innerText = e.state === 'charging' ? '【蓄力中】' : '';
-        
-        // 更新意圖 UI
-        const intentBox = document.getElementById('enemy-intent');
-        intentBox.innerText = `敵方意圖：${e.intent.text}`;
-        
-        // 玩家護盾顯示
-        const pBlockHtml = this.player.block > 0 ? `<span style="color:#a8dadc;">(護盾: ${this.player.block})</span>` : '';
-        document.getElementById('combat-hud').innerHTML += `<div style="text-align:right;">${pBlockHtml}</div>`;
+        renderEquip('eq-weapon', this.player.equip.weapon);
+        renderEquip('eq-head', this.player.equip.head);
+        renderEquip('eq-body', this.player.equip.body);
+        renderEquip('eq-arms', this.player.equip.arms);
+        renderEquip('eq-legs', this.player.equip.legs);
     }
 
     log(msg) {
-        const log = document.getElementById('combat-log');
-        log.innerHTML += `> ${msg}<br>`;
-        log.scrollTop = log.scrollHeight;
+        const logBox = document.getElementById('combat-log');
+        logBox.innerHTML += `> ${msg}<br>`;
+        logBox.scrollTop = logBox.scrollHeight;
     }
 
-    hasModule(modId) {
-        return this.player.modules.some(m => m.id === modId);
-    }
-
-    combatAction(actionType) {
-        const p = this.player;
-        const e = this.currentEnemy;
-        let pDmg = 0;
-
-        p.block = 0; // 除了防禦指令外，玩家護盾每回合歸零 (Roguelite卡牌邏輯)
-
-        // 1. 玩家行動結算
-        if (actionType === 'sword') {
-            let actualAtk = p.atk;
-            if(this.hasModule('overload')) { actualAtk += 8; p.hp -= 3; this.log('超載發動，扣除 3 HP！'); }
-            
-            let defCalc = e.def;
-            if(this.hasModule('pierce')) defCalc = Math.floor(defCalc * 0.5); // 破甲
-            
-            pDmg = Math.max(1, actualAtk - defCalc);
-            
-            if (e.block > 0) {
-                if(pDmg > e.block) { pDmg -= e.block; this.log(`打破了敵人的護盾！`); e.block = 0; }
-                else { e.block -= pDmg; this.log(`攻擊被敵方護盾吸收。`); pDmg = 0; }
-            }
-            
-            if(pDmg > 0) {
-                e.hp -= pDmg;
-                this.log(`武器打擊造成 <span style="color:var(--highlight)">${pDmg}</span> 點傷害。`);
-                if(this.hasModule('vampire')) {
-                    let heal = Math.floor(pDmg * 0.3);
-                    p.hp = Math.min(p.maxHp, p.hp + heal);
-                    this.log(`🩸 嗜血吸收了 ${heal} 點 HP！`);
-                }
-            }
-        } 
-        else if (actionType === 'magic') {
-            if (p.mp < 10) { this.log('<span style="color:var(--danger-color)">魔力不足！行動失敗。</span>'); return; }
-            
-            const castMagic = () => {
-                pDmg = Math.max(1, Math.floor(p.atk * 1.5)); // 法術無視護盾，且高倍率
-                e.hp -= pDmg;
-                this.log(`🪄 法術轟炸直接穿透造成 <span style="color:var(--primary-color)">${pDmg}</span> 點傷害！`);
-            };
-            
-            p.mp -= 10;
-            castMagic();
-            if(this.hasModule('echo') && Math.random() < 0.4 && e.hp > 0) {
-                this.log(`✨ 迴響模組觸發！額外施放一次！`);
-                castMagic();
-            }
-        } 
-        else if (actionType === 'defend') {
-            p.block = p.def * 3;
-            this.log(`🛡️ 進入防禦姿態，本回合獲得 ${p.block} 點護盾。`);
-        }
-        else if (actionType === 'item') {
-            const itemIdx = p.items.findIndex(i => i.type === 'recover');
-            if(itemIdx !== -1) {
-                p.hp = Math.min(p.maxHp, p.hp + 50);
-                p.items[itemIdx].count--;
-                if(p.items[itemIdx].count <= 0) p.items.splice(itemIdx, 1);
-                this.log('💉 使用了治療藥劑，恢復 50 HP。');
-            } else {
-                this.log('沒有可用的藥劑了！'); return;
-            }
-        }
-
-        if (e.hp <= 0) {
-            this.log('<br><b>戰鬥勝利！</b>');
-            this.endCombat(true);
-            return;
-        }
-
-        // 2. 敵人行動結算 (意圖兌現)
-        e.executeAction(p, (msg) => this.log(msg));
-
-        if (p.hp <= 0) {
-            p.hp = 0;
-            this.updateCombatUI();
-            this.gameOver(false);
-            return;
-        }
-
-        // 3. 準備下回合
-        e.planAction();
-        this.updateCombatUI();
-    }
-
-    useItemInCombat() {
-        this.combatAction('item');
-    }
-
-    endCombat(isWin) {
-        document.getElementById('combat-actions').style.display = 'none';
+    testCombat() {
+        this.navigate('screen-combat');
+        document.getElementById('combat-log').innerHTML = '';
+        this.log('<span style="color:var(--primary-color);"><strong>--- 啟動虛擬戰鬥訓練模組 ---</strong></span>');
         
-        let expGained = this.currentEnemy.exp;
-        this.player.score += (this.currentEnemy.isBoss ? 500 : 100);
-        let leveled = this.player.gainExp(expGained);
-        
-        alert(`獲得了 ${expGained} 經驗值！${leveled ? '\n🌟 升級了！獲得 1 點天賦點！' : ''}`);
-        
-        // 進入戰利品選擇階段
-        this.showLootSelection();
-    }
+        const stats = this.getCalculatedStats();
+        let enemyHp = 500;
+        let enemyAtk = 45;
+        let enemyDef = 20;
 
-    showLootSelection() {
-        this.navigate('screen-loot');
-        const container = document.getElementById('loot-options');
-        container.innerHTML = '';
-        
-        // 隨機抽取 3 個不重複的模組
-        let available = MODULE_POOL.filter(m => !this.hasModule(m.id));
-        let choices = available.sort(() => 0.5 - Math.random()).slice(0, 3);
-        
-        if(choices.length === 0) {
-            container.innerHTML = '<p>你已安裝所有模組，獲得屬性補償：最大 HP +20</p>';
-            let btn = document.createElement('button');
-            btn.className = 'menu-btn'; btn.innerText = '領取並返回營地';
-            btn.onclick = () => { this.player.maxHp+=20; this.player.hp+=20; this.advanceTurn(); this.navigate('screen-hub'); };
-            container.appendChild(btn);
-            return;
-        }
-
-        choices.forEach(mod => {
-            let card = document.createElement('div');
-            card.className = 'loot-card';
-            card.innerHTML = `<h3 style="margin-top:0;">${mod.name}</h3><p>${mod.desc}</p>`;
-            card.onclick = () => {
-                this.player.modules.push(mod);
-                alert(`安裝了 ${mod.name}！`);
-                this.advanceTurn();
-                this.navigate('screen-hub');
-                this.switchHubTab('modules');
-            };
-            container.appendChild(card);
+        // 1. 回合開始階段
+        this.log('<br><strong>【回合準備階段】</strong>');
+        stats.effects.forEach(eff => {
+            if(eff.type === 'hp_regen') this.log(`<span style="color:#2a9d8f">醫療系統啟動：回復 ${eff.val} HP。</span>`);
+            if(eff.type === 'mp_regen') this.log(`<span style="color:#4cc9f0">能量晶體共鳴：回復 ${eff.val} MP。</span>`);
+            if(eff.type === 'first_strike') this.log(`<span style="color:#fca311">天弓系統鎖定：本回合傷害提升 50%！</span>`);
+            if(eff.type === 'stealth') this.log(`<span style="color:#888">進入光學隱匿狀態，本回合免疫傷害！</span>`);
         });
-    }
 
-    gameOver(isWin) {
-        this.navigate('screen-result');
-        document.getElementById('result-title').innerText = isWin ? "成功關閉裂縫核心！" : "你倒在了裂縫中...";
-        document.getElementById('res-lv').innerText = this.player.lv;
-        document.getElementById('res-turn').innerText = this.state.turn;
+        // 2. 玩家攻擊階段
+        this.log('<br><strong>【玩家射擊/攻擊階段】</strong>');
+        let calcAtk = stats.atk;
+        let calcEnemyDef = enemyDef;
+        let isCrit = false;
+
+        stats.effects.forEach(eff => {
+            if(eff.type === 'ignore_def') {
+                calcEnemyDef = Math.floor(calcEnemyDef * (1 - eff.val));
+                this.log(`<span style="color:#fca311">破甲特效：貫穿敵方裝甲，敵方防禦降至 ${calcEnemyDef}！</span>`);
+            }
+            if(eff.type === 'crit_chance' && Math.random() < eff.val) isCrit = true;
+            if(eff.type === 'two_pass' && Math.random() < 0.2) {
+                calcAtk *= 2;
+                this.log(`<span style="color:#4cc9f0">SIC/XE 組譯核心：Two-Pass 雙重掃描，觸發二連擊！</span>`);
+            }
+        });
+
+        let finalDmg = Math.max(1, calcAtk - calcEnemyDef);
         
-        let finalScore = this.player.score + (this.player.hp * 2);
-        document.getElementById('res-score').innerText = finalScore;
+        if (isCrit) {
+            finalDmg = Math.floor(finalDmg * 1.5);
+            stats.effects.forEach(e => { if(e.type === 'crit_dmg') finalDmg = Math.floor(finalDmg * (1 + e.val)); });
+            this.log(`<span style="color:red; font-weight:bold;">弱點擊破！爆擊造成巨量傷害！</span>`);
+        }
+
+        this.log(`武器命中目標，造成 <span style="color:var(--primary-color)">${finalDmg}</span> 點傷害。`);
+        enemyHp -= finalDmg;
+
+        stats.effects.forEach(eff => {
+            if(eff.type === 'bleed') this.log(`<span style="color:red">流血特效：目標撕裂，受到 ${eff.val} 點傷害。</span>`);
+            if(eff.type === 'vampire') this.log(`<span style="color:#2a9d8f">鮮血虹吸：吸收了 ${Math.floor(finalDmg * eff.val)} 點生命。</span>`);
+            if(eff.type === 'splash') this.log(`<span style="color:#fca311">濺射判定：對周圍其他目標造成 ${Math.floor(finalDmg * eff.val)} 點波及傷害。</span>`);
+        });
+
+        // 3. 敵人反擊階段
+        this.log('<br><strong>【敵方反擊階段】</strong>');
+        let dmgTaken = Math.max(1, enemyAtk - stats.def);
+        let dodged = false;
+        let blocked = false;
+
+        let totalDodgeChance = 0;
+        stats.effects.forEach(eff => { 
+            if(eff.type === 'dodge' || eff.type === 'dodge_up') totalDodgeChance += eff.val; 
+            if(eff.type === 'block' && Math.random() < eff.val) blocked = true;
+        });
+
+        if (Math.random() < totalDodgeChance) dodged = true;
+
+        if (dodged) {
+            this.log(`<span style="color:#4cc9f0; font-weight:bold;">感測器發出警告！極限迴避了敵方火力！</span>`);
+            stats.effects.forEach(eff => { if(eff.type === 'counter') this.log(`<span style="color:#fca311">觸發反擊系統！對敵人造成微量傷害。</span>`); });
+        } else if (blocked) {
+            this.log(`<span style="color:#a8dadc; font-weight:bold;">愛國者攔截系統啟動：完美格擋所有傷害！</span>`);
+        } else {
+            this.log(`敵方開火，裝甲吸收部分衝擊後，你受到 <span style="color:red">${dmgTaken}</span> 點傷害。`);
+            stats.effects.forEach(eff => {
+                if(eff.type === 'reflect') {
+                    let refDmg = Math.floor(dmgTaken * eff.val);
+                    this.log(`<span style="color:#fca311">M1A2T 反應裝甲引爆：反彈 ${refDmg} 點傷害！</span>`);
+                }
+            });
+        }
+        
+        this.log('<br><span style="color:#888;">--- 模擬結束 ---</span>');
     }
 }
 
-// 啟動遊戲
 const app = new GameApp();
 </script>
 </body>
