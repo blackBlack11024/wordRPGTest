@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>文字RPG - Ex5 專案</title>
+    <title>文字RPG - 時間裂縫</title>
     <style>
         :root {
-            --bg-color: #f4f4f9; --text-color: #333; --border-color: #ccc;
-            --primary-color: #0056b3; --btn-bg: #e0e0e0; --danger-color: #dc3545;
+            --bg-color: #1a1a2e; --text-color: #e0e0e0; --border-color: #4a4e69;
+            --primary-color: #4cc9f0; --btn-bg: #16213e; --danger-color: #e63946;
+            --panel-bg: #0f3460; --highlight: #fca311;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -15,172 +16,198 @@
             margin: 0; padding: 0; display: flex; justify-content: center;
         }
         #game-container {
-            width: 100%; max-width: 600px; background: white;
-            min-height: 100vh; border-left: 1px solid var(--border-color);
-            border-right: 1px solid var(--border-color); padding: 20px; box-sizing: border-box;
+            width: 100%; max-width: 600px; background: #121212;
+            min-height: 100vh; border-left: 2px solid var(--border-color);
+            border-right: 2px solid var(--border-color); padding: 20px; box-sizing: border-box;
             position: relative;
         }
         .screen { display: none; }
-        .screen.active { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        h1, h2, h3 { text-align: center; }
+        .screen.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        h1, h2, h3 { text-align: center; color: var(--primary-color); }
         .menu-btn {
-            display: block; width: 100%; padding: 12px; margin: 8px 0;
-            font-size: 16px; background-color: var(--btn-bg);
-            border: 1px solid var(--border-color); border-radius: 5px; cursor: pointer;
+            display: block; width: 100%; padding: 14px; margin: 10px 0;
+            font-size: 16px; background-color: var(--btn-bg); color: var(--text-color);
+            border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;
+            transition: all 0.2s;
         }
-        .menu-btn:hover { background-color: #d0d0d0; }
-        .btn-combat { border-left: 5px solid #dc3545; }
-        .btn-event { border-left: 5px solid #28a745; }
-        .btn-boss { border-left: 5px solid #6f42c1; background-color: #f3e8ff; }
+        .menu-btn:hover { background-color: #1f305e; border-color: var(--primary-color); }
+        .btn-combat { border-left: 5px solid #e63946; }
+        .btn-event { border-left: 5px solid #2a9d8f; }
+        .btn-boss { border-left: 5px solid #9d4edd; background-color: #240046; font-weight: bold; }
         
-        .stats-box { border: 1px solid var(--border-color); padding: 10px; margin-bottom: 15px; border-radius: 5px; background: #fafafa; }
-        .stat-row { display: flex; justify-content: space-between; margin: 5px 0; font-weight: bold; }
-        .nav-tabs { display: flex; justify-content: space-around; margin-bottom: 15px; }
-        .nav-tabs button { flex: 1; margin: 0 5px; padding: 8px; }
+        .stats-box { border: 1px solid var(--border-color); padding: 12px; margin-bottom: 15px; border-radius: 8px; background: var(--panel-bg); }
+        .stat-row { display: flex; justify-content: space-between; margin: 6px 0; font-weight: bold; }
+        .nav-tabs { display: flex; justify-content: space-around; margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
+        .nav-tabs button { flex: 1; margin: 0 5px; padding: 10px; background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 5px; cursor: pointer;}
+        .nav-tabs button:hover { background: var(--primary-color); color: #000; }
         
         .point-allocator { display: flex; align-items: center; margin: 10px 0; justify-content: space-between; }
-        .point-allocator button { width: 35px; height: 35px; border-radius: 50%; border: 1px solid #aaa; cursor: pointer; font-size: 18px; }
+        .point-allocator button { width: 35px; height: 35px; border-radius: 50%; border: 1px solid var(--primary-color); background: var(--btn-bg); color: #fff; cursor: pointer; font-size: 18px; }
         
-        .log-box { height: 180px; overflow-y: auto; border: 1px solid var(--border-color); padding: 10px; background: #222; color: #0f0; font-family: monospace; font-size: 14px; margin-bottom: 15px; }
+        .log-box { height: 200px; overflow-y: auto; border: 1px solid var(--border-color); padding: 12px; background: #000; color: #4cc9f0; font-family: monospace; font-size: 15px; margin-bottom: 15px; line-height: 1.4; border-radius: 5px; }
         .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .action-btn { padding: 15px; font-size: 16px; border-radius: 5px; cursor: pointer; border: 1px solid #999; }
+        .action-btn { padding: 15px; font-size: 16px; border-radius: 5px; cursor: pointer; border: 1px solid #555; font-weight: bold; }
         
-        .char-card { border: 1px solid var(--border-color); padding: 10px; margin-bottom: 10px; border-radius: 5px; cursor: pointer; }
-        .char-card.selected { border-color: var(--primary-color); background-color: #e6f2ff; border-width: 2px; }
+        .char-card { border: 1px solid var(--border-color); padding: 12px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; background: var(--btn-bg); }
+        .char-card.selected { border-color: var(--primary-color); box-shadow: 0 0 10px rgba(76, 201, 240, 0.5); }
         
-        #records-list { max-height: 400px; overflow-y: auto; }
-        .record-item { border-bottom: 1px solid #eee; padding: 10px 0; }
+        /* 彈窗 UI */
+        #story-modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; box-sizing: border-box; padding: 40px 20px; color: #fff; line-height: 1.8; overflow-y: auto; }
+        #story-modal.active { display: block; animation: fadeIn 0.5s; }
+        .story-text { margin-bottom: 20px; font-size: 1.1em; border-left: 4px solid var(--highlight); padding-left: 15px;}
         
-        .turn-header { text-align: center; font-size: 1.2em; font-weight: bold; color: var(--primary-color); margin-bottom: 10px; }
+        .turn-header { text-align: center; font-size: 1.3em; font-weight: bold; color: var(--highlight); margin-bottom: 10px; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px; }
+        
+        /* 特效顏色 */
+        .txt-prehistoric { color: #f4a261; }
+        .txt-medieval { color: #a8dadc; }
+        .txt-cyber { color: #b5179e; }
     </style>
 </head>
 <body>
 
 <div id="game-container">
+    
+    <!-- 劇情彈窗 -->
+    <div id="story-modal">
+        <h2 style="color:var(--highlight); margin-bottom: 30px;">時間裂縫的呼喚</h2>
+        <div id="story-content" class="story-text"></div>
+        <button class="menu-btn" style="background:#fca311; color:#000; font-weight:bold; margin-top:30px;" onclick="document.getElementById('story-modal').classList.remove('active'); if(app.pendingBoss) app.execBossCombat(); else app.startGame();">繼續</button>
+    </div>
+
     <!-- 標題介面 -->
     <div id="screen-title" class="screen active">
-        <h1>文字RPG</h1>
-        <button class="menu-btn" onclick="app.navigate('screen-mode')">開始遊戲</button>
+        <h1 style="font-size: 2.5em; text-shadow: 0 0 10px var(--primary-color);">時間裂縫</h1>
+        <p style="text-align:center; color: #aaa; margin-bottom: 30px;">時空的碎片正在崩落...</p>
+        <button class="menu-btn" onclick="app.navigate('screen-mode')">開始新遊戲</button>
+        <button class="menu-btn" onclick="app.loadGame()" style="border-color: #2a9d8f;">讀取進度</button>
         <button class="menu-btn" onclick="app.showRecords()">遊玩紀錄</button>
     </div>
 
     <!-- 遊玩紀錄 -->
     <div id="screen-records" class="screen">
         <h2>遊玩紀錄</h2>
-        <div id="records-list" class="stats-box"></div>
+        <div id="records-list" class="stats-box" style="max-height:400px; overflow-y:auto;"></div>
         <button class="menu-btn" onclick="app.navigate('screen-title')">返回</button>
     </div>
 
     <!-- 模式選擇 -->
     <div id="screen-mode" class="screen">
-        <h2>選擇遊戲模式</h2>
-        <button class="menu-btn" onclick="app.selectMode('fixed')">固定回合模式 (最多20回合，通關2次Boss)</button>
-        <button class="menu-btn" onclick="app.selectMode('endless')">無限模式 (戰鬥直到生命歸零)</button>
-        <button class="menu-btn" onclick="app.navigate('screen-title')">返回標題</button>
+        <h2>選擇探索模式</h2>
+        <button class="menu-btn" onclick="app.selectMode('fixed')">固定回合模式<br><small style="color:#aaa">最多20回合，關閉兩次核心</small></button>
+        <button class="menu-btn" onclick="app.selectMode('endless')">無限模式<br><small style="color:#aaa">戰鬥直到靈魂消散</small></button>
+        <button class="menu-btn" onclick="app.navigate('screen-title')" style="margin-top: 20px;">返回標題</button>
     </div>
 
     <!-- 角色選擇 -->
     <div id="screen-char" class="screen">
-        <h2>選擇初始角色</h2>
+        <h2>選擇被選中的冒險者</h2>
         <div id="char-selection-list"></div>
-        <button class="menu-btn" onclick="app.startGame()" style="background-color: #d4edda; margin-top: 20px; font-size: 1.2em;">開始旅程</button>
+        <button class="menu-btn" onclick="app.showPrologue()" style="background-color: #2a9d8f; color:#fff; font-size: 1.2em; margin-top: 20px;">踏入裂縫</button>
         <button class="menu-btn" onclick="app.navigate('screen-mode')">上一頁</button>
     </div>
 
-    <!-- 遊戲主介面 (事件選擇) -->
+    <!-- 遊戲主介面 -->
     <div id="screen-hub" class="screen">
-        <div class="turn-header">當前進度：第 <span id="hub-turn"></span> 回合</div>
+        <div class="turn-header">深入裂縫：第 <span id="hub-turn"></span> 階層</div>
         <div class="stats-box" id="player-hud"></div>
         
         <div class="nav-tabs">
-            <button onclick="app.switchHubTab('events')">事件</button>
-            <button onclick="app.switchHubTab('points')">天賦</button>
-            <button onclick="app.switchHubTab('inventory')">背包/裝備</button>
+            <button onclick="app.switchHubTab('events')">探索</button>
+            <button onclick="app.switchHubTab('points')">冥想(天賦)</button>
+            <button onclick="app.switchHubTab('inventory')">裝備與行囊</button>
         </div>
         
         <!-- 事件分頁 -->
         <div id="tab-events" class="tab-content">
-            <h3>選擇一項事件挑戰：</h3>
+            <h3 style="color:#ccc;">選擇前方的道路：</h3>
             <div id="event-choices"></div>
+            <button class="menu-btn" onclick="app.saveGame()" style="margin-top: 30px; border-style: dashed;">💾 儲存進度</button>
+            <button class="menu-btn" onclick="if(confirm('確定要放棄本次進度返回標題嗎？')) app.navigate('screen-title')" style="border-style: dashed;">🚪 返回標題</button>
         </div>
 
         <!-- 天賦分頁 -->
         <div id="tab-points" class="tab-content" style="display:none;">
-            <h3 style="color: var(--primary-color);">剩餘天賦點: <span id="talent-points"></span></h3>
-            <div class="point-allocator"><span>生命 (HP +20)</span> <button onclick="app.upgradeStat('maxHp')">+</button></div>
-            <div class="point-allocator"><span>魔力 (MP +10)</span> <button onclick="app.upgradeStat('maxMp')">+</button></div>
-            <div class="point-allocator"><span>攻擊 (ATK +3)</span> <button onclick="app.upgradeStat('atk')">+</button></div>
-            <div class="point-allocator"><span>防禦 (DEF +2)</span> <button onclick="app.upgradeStat('def')">+</button></div>
+            <h3 style="color: var(--highlight);">殘存的天賦點: <span id="talent-points"></span></h3>
+            <div class="point-allocator"><span>體魄 (HP +25)</span> <button onclick="app.upgradeStat('maxHp')">+</button></div>
+            <div class="point-allocator"><span>精神 (MP +15)</span> <button onclick="app.upgradeStat('maxMp')">+</button></div>
+            <div class="point-allocator"><span>力量 (ATK +4)</span> <button onclick="app.upgradeStat('atk')">+</button></div>
+            <div class="point-allocator"><span>護甲 (DEF +3)</span> <button onclick="app.upgradeStat('def')">+</button></div>
         </div>
 
         <!-- 背包分頁 -->
         <div id="tab-inventory" class="tab-content" style="display:none;">
-            <h3>裝備與法杖</h3>
+            <h3 style="color: var(--primary-color);">武裝狀態</h3>
             <div id="inv-equip" class="stats-box"></div>
-            <h3>道具 (點擊使用)</h3>
+            <h3 style="color: var(--primary-color);">時空道具 (點擊使用)</h3>
             <div id="inv-items"></div>
         </div>
     </div>
 
     <!-- 戰鬥介面 -->
     <div id="screen-combat" class="screen">
-        <h2 id="combat-title" class="turn-header">戰鬥事件</h2>
+        <h2 id="combat-title" class="turn-header">遭遇戰</h2>
         <div class="stats-box" id="combat-hud"></div>
         
-        <div class="stats-box" style="border-color: #dc3545; background-color: #fff5f5;">
-            <div class="stat-row"><span id="enemy-name" style="color: #dc3545; font-size: 1.2em;"></span></div>
-            <div class="stat-row"><span>HP: <span id="enemy-hp"></span></span> <span>ATK: <span id="enemy-atk"></span> | DEF: <span id="enemy-def"></span></span></div>
+        <div class="stats-box" style="border-color: #e63946; background-color: #310a0f;">
+            <div class="stat-row"><span id="enemy-name" style="color: #e63946; font-size: 1.3em;"></span></div>
+            <div class="stat-row"><span style="color:#ffb3ba;">HP: <span id="enemy-hp"></span></span> <span>ATK: <span id="enemy-atk" style="color:#ffb3ba;"></span> | DEF: <span id="enemy-def" style="color:#a8dadc;"></span></span></div>
         </div>
 
         <div class="log-box" id="combat-log"></div>
 
         <div class="action-grid" id="combat-actions">
-            <button class="action-btn" onclick="app.combatAction('sword')" style="background-color: #e2e3e5;">⚔️ 劍術攻擊<br><small>受防禦減免</small></button>
-            <button class="action-btn" onclick="app.combatAction('magic')" style="background-color: #cce5ff;">🪄 法術攻擊<br><small>消耗 10 MP</small></button>
-            <button class="action-btn" onclick="app.useItemInCombat()" style="background-color: #d4edda;">🎒 使用道具<br><small>輔助通關</small></button>
-            <button class="action-btn" onclick="app.combatAction('flee')" style="background-color: #f8d7da;">🏃 逃跑<br><small>事件失敗</small></button>
+            <button class="action-btn" onclick="app.combatAction('sword')" style="background-color: #2b2d42; color:#fff;">⚔️ 劍術打擊<br><small style="color:#aaa">受敵方防禦減免</small></button>
+            <button class="action-btn" onclick="app.combatAction('magic')" style="background-color: #1d3557; color:#fff;">🪄 法術轟炸<br><small style="color:#aaa">消耗 10 MP (無視部分防禦)</small></button>
+            <button class="action-btn" onclick="app.useItemInCombat()" style="background-color: #2a9d8f; color:#fff;">🎒 輔助道具<br><small style="color:#aaa">干擾敵人通關</small></button>
+            <button class="action-btn" onclick="app.combatAction('flee')" style="background-color: #8d0801; color:#fff;">🏃 逃離<br><small style="color:#aaa">放棄本次事件</small></button>
         </div>
-        <button id="btn-combat-continue" class="menu-btn" style="display:none; background-color: #d4edda;" onclick="app.endEvent()">繼續旅程</button>
+        <button id="btn-combat-continue" class="menu-btn" style="display:none; background-color: #fca311; color:#000; font-weight:bold; font-size:1.2em;" onclick="app.endEvent()">繼續探索</button>
     </div>
 
     <!-- 結算介面 -->
     <div id="screen-result" class="screen">
-        <h1 id="result-title">遊戲結束</h1>
+        <h1 id="result-title" style="font-size:3em;">遊戲結束</h1>
         <div class="stats-box">
-            <p>遊玩模式: <span id="res-mode"></span></p>
-            <p>使用角色: <span id="res-char"></span></p>
-            <p>存活回合: <span id="res-turn"></span></p>
-            <hr>
-            <h3>最終結算分數: <span id="res-score" style="color: var(--primary-color); font-size: 1.5em;"></span></h3>
+            <p>遊玩模式: <span id="res-mode" style="color:var(--highlight)"></span></p>
+            <p>英雄之名: <span id="res-char" style="color:var(--highlight)"></span></p>
+            <p>深入階層: <span id="res-turn" style="color:var(--highlight)"></span></p>
+            <hr style="border-color:var(--border-color);">
+            <h3 style="margin-top:15px;">最終結算靈魂點數: <br><span id="res-score" style="color: #2a9d8f; font-size: 2em; display:block; margin-top:10px;"></span></h3>
         </div>
-        <button class="menu-btn" onclick="app.navigate('screen-title')">返回標題介面</button>
+        <button class="menu-btn" onclick="app.navigate('screen-title')">返回現實 (標題介面)</button>
     </div>
 </div>
 
 <script>
 /**
- * 遊戲資料設定
+ * 遊戲資料設定 (全面提升玩家初始體驗與存活率)
  */
 const CHARACTERS = [
-    { id: 'warrior', name: '戰士', maxHp: 150, hp: 150, maxMp: 30, mp: 30, atk: 15, def: 10, weapon: '生鏽鐵劍', equip: '舊皮甲', staff: '木短杖', ability: '提升基礎數值 (高生命/高防禦)', startItem: null },
-    { id: 'mage', name: '法師', maxHp: 80, hp: 80, maxMp: 100, mp: 100, atk: 8, def: 4, weapon: '小匕首', equip: '布衣', staff: '學徒法杖', ability: '攜帶初始道具 (魔力藥水x3)', startItem: {name: '魔力藥水', type: 'recover', effect: {mp: 30}, count: 3} },
-    { id: 'rogue', name: '斥候', maxHp: 100, hp: 100, maxMp: 50, mp: 50, atk: 12, def: 6, weapon: '獵刀', equip: '輕盈披風', staff: '無', ability: '其他能力 (自帶煙霧彈可跳過戰鬥)', startItem: {name: '煙霧彈', type: 'assist', count: 1} }
+    { id: 'warrior', name: '戰士', maxHp: 180, hp: 180, maxMp: 50, mp: 50, atk: 18, def: 12, weapon: '生鏽鐵劍', equip: '舊皮甲', staff: '粗糙木杖', ability: '高額生命與物理防禦', startItem: null },
+    { id: 'mage', name: '法師', maxHp: 110, hp: 110, maxMp: 140, mp: 140, atk: 10, def: 6, weapon: '防身匕首', equip: '學者布衣', staff: '學徒法杖', ability: '開局攜帶魔力藥水x3', startItem: {name: '魔力藥水', type: 'recover', effect: {mp: 50}, count: 3} },
+    { id: 'rogue', name: '斥候', maxHp: 140, hp: 140, maxMp: 80, mp: 80, atk: 15, def: 8, weapon: '軍用短刀', equip: '輕盈披風', staff: '無', ability: '開局攜帶煙霧彈(直接通關戰鬥)x1', startItem: {name: '煙霧彈', type: 'assist', count: 1} }
+];
+
+// 時代設定，決定怪物特性
+const ERAS = [
+    { id: 'prehistoric', name: '洪荒紀元', class: 'txt-prehistoric', defMod: 0.4, hpMod: 1.4, prefix: '遠古', mobs: ['嗜血巨獸', '部落狂戰士', '洪荒猛獁'] },
+    { id: 'medieval', name: '中世紀時代', class: 'txt-medieval', defMod: 1.0, hpMod: 1.0, prefix: '闇鋼', mobs: ['亡靈騎士', '墮落法師', '腐化石像鬼'] },
+    { id: 'cyber', name: '未來賽博', class: 'txt-cyber', defMod: 1.8, hpMod: 0.7, prefix: '賽博', mobs: ['失控機甲', '防禦無人機', '生化改造兵'] }
 ];
 
 /**
  * 玩家類別
  */
 class Player {
-    constructor(charData) {
-        Object.assign(this, JSON.parse(JSON.stringify(charData))); // 深拷貝
-        this.lv = 1;
-        this.exp = 0;
-        this.expNeeded = 100;
-        this.points = 0;
-        this.score = 0;
-        this.items = [];
-        if (this.startItem) this.items.push(this.startItem);
+    constructor(data) {
+        Object.assign(this, data);
+        if (this.lv === undefined) {
+            this.lv = 1; this.exp = 0; this.expNeeded = 100;
+            this.points = 0; this.score = 0; this.items = [];
+            if (this.startItem) this.items.push(this.startItem);
+        }
     }
 
     gainExp(amount) {
@@ -191,8 +218,9 @@ class Player {
             this.lv++;
             this.points++;
             this.expNeeded = Math.floor(this.expNeeded * 1.5);
-            this.maxHp += 10; this.hp = this.maxHp;
-            this.maxMp += 5; this.mp = this.maxMp;
+            this.maxHp += 15; this.hp = this.maxHp;
+            this.maxMp += 10; this.mp = this.maxMp;
+            this.atk += 2; this.def += 1;
             leveledUp = true;
         }
         return leveledUp;
@@ -206,12 +234,10 @@ class Player {
             if (item.effect.hp) this.hp = Math.min(this.maxHp, this.hp + item.effect.hp);
             if (item.effect.mp) this.mp = Math.min(this.maxMp, this.mp + item.effect.mp);
         } else if (item.type === 'assist' && context === 'combat') {
-            // 輔助過關道具 (例如煙霧彈直接秒殺一般怪)
             return 'assist_used';
         } else if (item.type === 'assist' && context === 'hub') {
-            return false; // 戰鬥輔助道具無法在非戰鬥使用
+            return false;
         }
-
         item.count--;
         if (item.count <= 0) this.items.splice(index, 1);
         return true;
@@ -226,6 +252,7 @@ class GameApp {
         this.state = { mode: '', selectedCharId: 'warrior', turn: 1, isBossTurn: false };
         this.player = null;
         this.currentEnemy = null;
+        this.pendingBoss = false;
         this.initCharSelection();
     }
 
@@ -246,6 +273,38 @@ class GameApp {
         this.updateHUD();
     }
 
+    // --- 存檔/讀檔系統 ---
+    saveGame() {
+        const saveObj = { player: this.player, state: this.state };
+        localStorage.setItem('rift_rpg_save', JSON.stringify(saveObj));
+        alert('【系統提示】世界線紀錄完成。');
+    }
+
+    loadGame() {
+        const saveStr = localStorage.getItem('rift_rpg_save');
+        if (!saveStr) { alert('【系統提示】找不到時間裂縫的殘留印記 (無存檔)。'); return; }
+        const saveObj = JSON.parse(saveStr);
+        this.player = new Player(saveObj.player);
+        this.state = saveObj.state;
+        this.generateEvents();
+        this.navigate('screen-hub');
+    }
+
+    // --- 劇情彈窗 ---
+    showPrologue() {
+        const text = `世界開始出現不明的「時間裂縫」，不同時代的怪物不斷湧出，導致現實逐漸崩壞。<br><br>沒有人知道原因，只知道裂縫的源頭在某個未知的深處。<br><br>你是一名被選中的冒險者，必須進入裂縫中探索，一邊戰鬥、一邊收集力量，逐步接近核心。傳說只要關閉裂縫，世界就能恢復正常——<br><br>但也有人說，裂縫的另一端，藏著更可怕的存在...`;
+        document.getElementById('story-content').innerHTML = text;
+        document.getElementById('story-modal').classList.add('active');
+        this.pendingBoss = false;
+    }
+
+    showBossLore() {
+        const text = `<span style="color:#e63946;">周遭的空氣突然凝固，洪荒的咆哮、鋼鐵的摩擦聲與咒語的低鳴在一瞬間消失。</span><br><br>裂縫的核心在你面前劇烈收縮，形成了一個漆黑的漩渦。<br><br>一個巨大的身影從虛無中踏出，它是所有被遺忘時代的殘骸集合體...`;
+        document.getElementById('story-content').innerHTML = text;
+        document.getElementById('story-modal').classList.add('active');
+        this.pendingBoss = true;
+    }
+
     // --- 初始化 ---
     initCharSelection() {
         const container = document.getElementById('char-selection-list');
@@ -254,14 +313,14 @@ class GameApp {
             const div = document.createElement('div');
             div.className = `char-card ${this.state.selectedCharId === char.id ? 'selected' : ''}`;
             div.innerHTML = `
-                <h3 style="margin:0 0 5px 0; color:var(--primary-color)">${char.name}</h3>
-                <div style="font-size:0.9em; margin-bottom:5px;"><b>能力：</b>${char.ability}</div>
-                <div class="stat-row"><span>HP: ${char.maxHp}</span> <span>MP: ${char.maxMp}</span></div>
-                <div class="stat-row"><span>ATK: ${char.atk}</span> <span>DEF: ${char.def}</span></div>
+                <h3 style="margin:0 0 10px 0; color:var(--primary-color)">${char.name}</h3>
+                <div style="font-size:0.95em; margin-bottom:10px; color:#bbb;"><b>特質：</b>${char.ability}</div>
+                <div class="stat-row"><span style="color:#ffb3ba;">HP: ${char.maxHp}</span> <span style="color:#a8dadc;">MP: ${char.maxMp}</span></div>
+                <div class="stat-row"><span style="color:#fca311;">ATK: ${char.atk}</span> <span style="color:#ccc;">DEF: ${char.def}</span></div>
             `;
             div.onclick = () => {
                 this.state.selectedCharId = char.id;
-                this.initCharSelection(); // 重新渲染以更新外框
+                this.initCharSelection();
             };
             container.appendChild(div);
         });
@@ -269,7 +328,7 @@ class GameApp {
 
     startGame() {
         const charData = CHARACTERS.find(c => c.id === this.state.selectedCharId);
-        this.player = new Player(charData);
+        this.player = new Player(JSON.parse(JSON.stringify(charData)));
         this.state.turn = 1;
         this.generateEvents();
         this.navigate('screen-hub');
@@ -280,9 +339,9 @@ class GameApp {
         const renderHUD = (containerId) => {
             const p = this.player;
             document.getElementById(containerId).innerHTML = `
-                <div class="stat-row"><span>等級: ${p.lv}</span> <span>經驗: ${p.exp}/${p.expNeeded}</span> <span>分數: ${p.score}</span></div>
-                <div class="stat-row"><span style="color:#d32f2f">HP: ${p.hp}/${p.maxHp}</span> <span style="color:#1976d2">MP: ${p.mp}/${p.maxMp}</span></div>
-                <div class="stat-row"><span>ATK: ${p.atk}</span> <span>DEF: ${p.def}</span></div>
+                <div class="stat-row"><span>等級: ${p.lv}</span> <span>EXP: ${p.exp}/${p.expNeeded}</span> <span style="color:var(--highlight)">靈魂分數: ${p.score}</span></div>
+                <div class="stat-row"><span style="color:#ffb3ba;">HP: ${p.hp}/${p.maxHp}</span> <span style="color:#a8dadc;">MP: ${p.mp}/${p.maxMp}</span></div>
+                <div class="stat-row"><span style="color:#fca311;">ATK: ${p.atk}</span> <span style="color:#ccc;">DEF: ${p.def}</span></div>
             `;
         };
         if(document.getElementById('screen-hub').classList.contains('active')) renderHUD('player-hud');
@@ -294,27 +353,25 @@ class GameApp {
     }
 
     renderInventory() {
-        // 裝備
         document.getElementById('inv-equip').innerHTML = `
-            <p><b>武器:</b> ${this.player.weapon}</p>
-            <p><b>法杖:</b> ${this.player.staff}</p>
-            <p><b>裝備:</b> ${this.player.equip}</p>
+            <p><b>🗡️ 武器:</b> <span style="color:var(--highlight)">${this.player.weapon}</span></p>
+            <p><b>🪄 法杖:</b> <span style="color:var(--highlight)">${this.player.staff}</span></p>
+            <p><b>🛡️ 裝甲:</b> <span style="color:var(--highlight)">${this.player.equip}</span></p>
         `;
-        // 道具
         const itemBox = document.getElementById('inv-items');
         itemBox.innerHTML = '';
-        if (this.player.items.length === 0) itemBox.innerHTML = '<p>背包空空如也</p>';
+        if (this.player.items.length === 0) itemBox.innerHTML = '<p style="color:#777;">行囊空空如也</p>';
         this.player.items.forEach((item, index) => {
             const btn = document.createElement('button');
             btn.className = 'menu-btn';
-            let desc = item.type === 'recover' ? '(回復)' : '(輔助/戰鬥中用)';
-            btn.innerText = `${item.name} x${item.count} ${desc}`;
+            let desc = item.type === 'recover' ? '(恢復狀態)' : '(戰鬥中干擾敵人)';
+            btn.innerHTML = `${item.name} <span style="color:var(--highlight)">x${item.count}</span> <br><small>${desc}</small>`;
             btn.onclick = () => {
                 if(this.player.useItem(index, 'hub')) {
-                    alert(`使用了 ${item.name}`);
+                    alert(`使用了 ${item.name}！`);
                     this.updateHUD();
                 } else {
-                    alert('該道具無法在此時使用。');
+                    alert('該時空道具無法在探索時使用。');
                 }
             };
             itemBox.appendChild(btn);
@@ -325,14 +382,14 @@ class GameApp {
     upgradeStat(stat) {
         if (this.player.points <= 0) { alert('天賦點不足！'); return; }
         this.player.points--;
-        if (stat === 'maxHp') { this.player.maxHp += 20; this.player.hp += 20; }
-        if (stat === 'maxMp') { this.player.maxMp += 10; this.player.mp += 10; }
-        if (stat === 'atk') this.player.atk += 3;
-        if (stat === 'def') this.player.def += 2;
+        if (stat === 'maxHp') { this.player.maxHp += 25; this.player.hp += 25; }
+        if (stat === 'maxMp') { this.player.maxMp += 15; this.player.mp += 15; }
+        if (stat === 'atk') this.player.atk += 4;
+        if (stat === 'def') this.player.def += 3;
         this.updateHUD();
     }
 
-    // --- 事件系統 ---
+    // --- 事件生成系統 ---
     generateEvents() {
         this.updateHUD();
         this.switchHubTab('events');
@@ -342,11 +399,10 @@ class GameApp {
         // Boss 戰檢測 (第10回合、第20回合)
         if (this.state.turn % 10 === 0) {
             this.state.isBossTurn = true;
-            let bossLevel = this.state.turn / 10;
             const btn = document.createElement('button');
             btn.className = 'menu-btn btn-boss';
-            btn.innerHTML = `⚠️ 第 ${this.state.turn} 回合 Boss 戰 ⚠️<br><small>無法避開的宿命對決</small>`;
-            btn.onclick = () => this.startCombat(true, bossLevel);
+            btn.innerHTML = `⚠️ 第 ${this.state.turn} 階層：裂縫核心 ⚠️<br><small>即將迎戰時代的集合體</small>`;
+            btn.onclick = () => this.showBossLore(); // 觸發劇情，點擊繼續後呼叫 execBossCombat
             container.appendChild(btn);
             return;
         }
@@ -354,25 +410,26 @@ class GameApp {
         this.state.isBossTurn = false;
         // 隨機產生3個事件 (戰鬥/非戰鬥)
         for (let i = 0; i < 3; i++) {
-            const isCombat = Math.random() > 0.4; // 60% 機率是戰鬥
+            const isCombat = Math.random() > 0.4; // 60% 戰鬥機率
             const btn = document.createElement('button');
             
             if (isCombat) {
+                const era = ERAS[Math.floor(Math.random() * ERAS.length)];
                 btn.className = 'menu-btn btn-combat';
-                btn.innerHTML = `⚔️ 戰鬥事件<br><small>遭遇魔物，擊敗可獲得豐厚獎勵</small>`;
-                btn.onclick = () => this.startCombat(false);
+                btn.innerHTML = `⚔️ 戰鬥：<span class="${era.class}">${era.name}裂縫</span><br><small>可能遭遇該時代的怪物</small>`;
+                btn.onclick = () => this.startCombat(false, era);
             } else {
                 btn.className = 'menu-btn btn-event';
                 const eventTypes = [
-                    { t: 'item', desc: '發現寶箱', logic: () => this.rewardItem() },
-                    { t: 'upgrade', desc: '遇到鐵匠', logic: () => this.upgradeGear() }
+                    { name: '高維度鍛造台', desc: '升級武裝屬性', logic: () => this.forgeGear() },
+                    { name: '時空膠囊', desc: '獲取戰略輔助道具', logic: () => this.rewardCapsule() },
+                    { name: '靜謐營地', desc: '休息恢復生命與魔力', logic: () => this.restCamp() }
                 ];
                 const ev = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-                btn.innerHTML = `✨ 非戰鬥事件<br><small>${ev.desc}</small>`;
+                btn.innerHTML = `✨ 事件：${ev.name}<br><small>${ev.desc}</small>`;
                 btn.onclick = () => {
                     ev.logic();
-                    this.player.score += 50;
-                    alert(`完成非戰鬥事件！獲得 50 分。`);
+                    this.player.score += 80;
                     this.endEvent();
                 };
             }
@@ -380,50 +437,72 @@ class GameApp {
         }
     }
 
-    // 非戰鬥獎勵邏輯
-    rewardItem() {
+    // --- 非戰鬥事件邏輯 ---
+    forgeGear() {
+        const r = Math.random();
+        if (r < 0.33) { this.player.weapon = '高維度·' + this.player.weapon; this.player.atk += 6; alert('鍛造成功！武器攻擊力大幅提升。'); }
+        else if (r < 0.66) { this.player.equip = '高維度·' + this.player.equip; this.player.def += 4; alert('鍛造成功！裝備防禦力大幅提升。'); }
+        else { this.player.staff = '高維度·' + this.player.staff; this.player.maxMp += 30; this.player.mp += 30; alert('鍛造成功！法杖魔力上限提升。'); }
+    }
+    
+    rewardCapsule() {
         const pool = [
-            {name: '生命藥水', type: 'recover', effect: {hp: 50}, count: 1},
-            {name: '魔力藥水', type: 'recover', effect: {mp: 30}, count: 1},
-            {name: '閃光彈', type: 'assist', count: 1} // 幫助通關
+            {name: '萬能恢復劑', type: 'recover', effect: {hp: 80, mp: 50}, count: 1},
+            {name: 'EMP干擾彈', type: 'assist', count: 1},
+            {name: '時間停滯沙漏', type: 'assist', count: 1}
         ];
         const loot = pool[Math.floor(Math.random() * pool.length)];
         let exist = this.player.items.find(i => i.name === loot.name);
         if(exist) exist.count++;
         else this.player.items.push(JSON.parse(JSON.stringify(loot)));
-        alert(`打開寶箱，獲得了：${loot.name}！`);
+        alert(`開啟時空膠囊，獲得了：${loot.name}！`);
     }
 
-    upgradeGear() {
-        const r = Math.random();
-        if (r < 0.33) { this.player.weapon = '強化' + this.player.weapon; this.player.atk += 3; alert('武器升級！攻擊力提升。'); }
-        else if (r < 0.66) { this.player.equip = '強化' + this.player.equip; this.player.def += 2; alert('裝備升級！防禦力提升。'); }
-        else { this.player.staff = '強化' + this.player.staff; this.player.maxMp += 10; this.player.mp += 10; alert('法杖升級！最大魔力提升。'); }
+    restCamp() {
+        const healHp = Math.floor(this.player.maxHp * 0.4);
+        const healMp = Math.floor(this.player.maxMp * 0.4);
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + healHp);
+        this.player.mp = Math.min(this.player.maxMp, this.player.mp + healMp);
+        alert(`在營地休息，恢復了 ${healHp} HP 與 ${healMp} MP。`);
     }
 
     // --- 戰鬥系統 ---
-    startCombat(isBoss, bossLevel = 1) {
+    execBossCombat() {
+        this.startCombat(true, null);
+    }
+
+    startCombat(isBoss, eraObj) {
         this.navigate('screen-combat');
-        document.getElementById('combat-log').innerHTML = '戰鬥開始！<br>';
+        document.getElementById('combat-log').innerHTML = '系統警告：偵測到敵意信號！<br>';
         document.getElementById('combat-actions').style.display = 'grid';
         document.getElementById('btn-combat-continue').style.display = 'none';
 
-        const scale = this.state.turn;
+        const scale = this.state.turn; // 削弱敵人基礎係數，提升玩家容錯
         if (isBoss) {
-            document.getElementById('combat-title').innerText = "⚠️ BOSS 戰 ⚠️";
+            let bossLevel = this.state.turn / 10;
+            document.getElementById('combat-title').innerText = "⚠️ 核心守護者 ⚠️";
             this.currentEnemy = {
-                name: bossLevel === 1 ? '石像鬼' : '黑龍王',
+                name: bossLevel === 1 ? '時空融合獸' : '終焉殘骸神',
+                eraId: 'boss',
                 isBoss: true,
-                maxHp: 200 * bossLevel, hp: 200 * bossLevel,
-                atk: 25 * bossLevel, def: 8 * bossLevel, exp: 100 * bossLevel, score: 500 * bossLevel
+                maxHp: 250 * bossLevel, hp: 250 * bossLevel,
+                atk: 25 + (bossLevel * 10), def: 10 + (bossLevel * 5), 
+                exp: 150 * bossLevel, score: 800 * bossLevel
             };
         } else {
-            document.getElementById('combat-title').innerText = "戰鬥事件";
+            document.getElementById('combat-title').innerText = `遭遇戰 (${eraObj.name})`;
+            const mobName = eraObj.mobs[Math.floor(Math.random() * eraObj.mobs.length)];
+            const baseHp = 50 + scale * 8;
+            const baseDef = 3 + scale * 0.8;
             this.currentEnemy = {
-                name: ['史萊姆', '哥布林', '野狼'][Math.floor(Math.random() * 3)] + ` Lv.${scale}`,
+                name: `${mobName} Lv.${scale}`,
+                eraId: eraObj.id,
+                eraPrefix: eraObj.prefix,
                 isBoss: false,
-                maxHp: 40 + scale * 10, hp: 40 + scale * 10,
-                atk: 10 + scale * 2, def: 2 + scale, exp: 30 + scale * 5, score: 100 + scale * 10
+                maxHp: Math.floor(baseHp * eraObj.hpMod), hp: Math.floor(baseHp * eraObj.hpMod),
+                atk: Math.floor(12 + scale * 1.5), 
+                def: Math.floor(baseDef * eraObj.defMod), 
+                exp: 40 + scale * 8, score: 120 + scale * 15
             };
         }
         this.updateEnemyUI();
@@ -448,23 +527,23 @@ class GameApp {
         const enemy = this.currentEnemy;
         let dmgToEnemy = 0;
 
-        // 玩家回合
         if (type === 'sword') {
-            dmgToEnemy = Math.max(1, this.player.atk - enemy.def); // 劍術受防禦減免
-            this.logCombat(`使用【劍術】，造成 ${dmgToEnemy} 點傷害。(遭減免 ${enemy.def} 點)`);
+            dmgToEnemy = Math.max(1, this.player.atk - enemy.def); 
+            this.logCombat(`使用【劍術打擊】，造成 <span style="color:#fca311">${dmgToEnemy}</span> 點傷害。(遭裝甲減免 ${enemy.def} 點)`);
         } else if (type === 'magic') {
             if (this.player.mp < 10) {
-                this.logCombat('<span style="color:red">魔力不足，無法使用法術！</span>');
+                this.logCombat('<span style="color:var(--danger-color)">魔力枯竭，無法施放法術！</span>');
                 return;
             }
             this.player.mp -= 10;
-            dmgToEnemy = Math.max(1, Math.floor(this.player.atk * 1.8)); // 法術高倍率且無視部分防禦
-            this.logCombat(`詠唱【法術】，消耗 10 MP，造成 ${dmgToEnemy} 點強效傷害！`);
+            // 法術無視部分防禦且擁有較高倍率
+            dmgToEnemy = Math.max(1, Math.floor(this.player.atk * 1.8) - Math.floor(enemy.def * 0.3)); 
+            this.logCombat(`詠唱【法術轟炸】消耗 10 MP，引發能量爆發，造成 <span style="color:var(--primary-color)">${dmgToEnemy}</span> 點穿透傷害！`);
         } else if (type === 'flee') {
             if (enemy.isBoss) {
-                this.logCombat('<span style="color:red">無法逃離 Boss 戰！</span>'); return;
+                this.logCombat('<span style="color:var(--danger-color)">核心鎖定空間，無法逃離！</span>'); return;
             }
-            this.logCombat('你逃跑了... 錯失了獎勵。');
+            this.logCombat('你狼狽地逃出了裂縫區域... 錯失了戰利品。');
             this.combatEnd(false, true);
             return;
         }
@@ -473,15 +552,15 @@ class GameApp {
         if (enemy.hp <= 0) {
             enemy.hp = 0;
             this.updateEnemyUI();
-            this.logCombat(`<span style="color:#28a745">擊敗了 ${enemy.name}！</span>`);
+            this.logCombat(`<span style="color:#2a9d8f; font-weight:bold;">成功粉碎了 ${enemy.name}！</span>`);
             this.combatEnd(true, false);
             return;
         }
 
-        // 敵人回合
+        // 敵人反擊
         let dmgToPlayer = Math.max(1, enemy.atk - this.player.def);
         this.player.hp -= dmgToPlayer;
-        this.logCombat(`<span style="color:#dc3545">${enemy.name} 攻擊，對你造成 ${dmgToPlayer} 點傷害。</span>`);
+        this.logCombat(`<span style="color:var(--danger-color)">${enemy.name} 發動攻擊，造成 ${dmgToPlayer} 點傷害。</span>`);
         
         this.updateEnemyUI();
         this.updateHUD();
@@ -496,21 +575,22 @@ class GameApp {
     useItemInCombat() {
         const itemIdx = this.player.items.findIndex(i => i.type === 'assist');
         if (itemIdx === -1) {
-            this.logCombat("背包中沒有可用的【輔助道具】！");
+            this.logCombat("行囊中沒有可用的【輔助道具】！");
             return;
         }
         
         const item = this.player.items[itemIdx];
         if (this.currentEnemy.isBoss) {
-             this.logCombat(`對 Boss 使用 ${item.name} 無效！`);
+             this.logCombat(`強大的空間法則讓 ${item.name} 對 Boss 無效！`);
              return;
         }
 
         this.player.useItem(itemIdx, 'combat');
-        this.logCombat(`使用了【${item.name}】，干擾了敵人，直接通過事件！`);
-        this.combatEnd(true, false, true); // true = skip rewards partially
+        this.logCombat(`投擲了【${item.name}】，敵人陷入混亂，你趁機突破了防線！`);
+        this.combatEnd(true, false, true); 
     }
 
+    // 戰鬥結算與戰利品掉落
     combatEnd(isWin, isFlee, usedItem = false) {
         document.getElementById('combat-actions').style.display = 'none';
         document.getElementById('btn-combat-continue').style.display = 'block';
@@ -521,20 +601,40 @@ class GameApp {
             this.player.score += score;
             const lvlUp = this.player.gainExp(exp);
             
-            this.logCombat(`獲得 ${exp} 經驗值，${score} 分數。`);
-            if (lvlUp) this.logCombat('<span style="color:gold">🌟 升級了！獲得 1 點天賦點。</span>');
+            this.logCombat(`吸收殘骸能量，獲得 ${exp} 經驗值，${score} 靈魂分數。`);
+            if (lvlUp) this.logCombat('<span style="color:gold; font-weight:bold;">🌟 境界突破！等級提升，獲得 1 點天賦點。</span>');
             
-            // 戰鬥隨機掉落裝備或道具
-            if (Math.random() > 0.5 && !usedItem) this.rewardItem();
+            // 加入裝備掉落系統 (70% 機率掉落，使用道具通關不掉落)
+            if (Math.random() > 0.3 && !usedItem && !this.currentEnemy.isBoss) {
+                this.rewardWeaponDrop(this.currentEnemy.eraPrefix);
+            } else if (this.currentEnemy.isBoss) {
+                this.rewardWeaponDrop('傳說·'); // Boss 必掉落神話裝備
+                this.rewardWeaponDrop('傳說·'); // Boss 給兩件裝備
+            }
         }
         this.updateHUD();
+    }
+
+    rewardWeaponDrop(prefix) {
+        const r = Math.random();
+        if(r < 0.33) {
+            const w = prefix + ['斬裂劍', '高頻刀', '毀滅刃'][Math.floor(Math.random()*3)];
+            this.player.weapon = w; this.player.atk += 5;
+            this.logCombat(`<span style="color:#fca311">🎁 檢拾戰利品：更換武器為【${w}】 (基礎攻擊+5)</span>`);
+        } else if(r < 0.66) {
+            const e = prefix + ['動力甲', '魔力護身衣', '重型板甲'][Math.floor(Math.random()*3)];
+            this.player.equip = e; this.player.def += 4;
+            this.logCombat(`<span style="color:#fca311">🎁 檢拾戰利品：更換防具為【${e}】 (基礎防禦+4)</span>`);
+        } else {
+            const s = prefix + ['聚能核心', '大魔法師杖', '靈魂權杖'][Math.floor(Math.random()*3)];
+            this.player.staff = s; this.player.maxMp += 25; this.player.mp += 25;
+            this.logCombat(`<span style="color:#fca311">🎁 檢拾戰利品：更換法杖為【${s}】 (魔力上限+25)</span>`);
+        }
     }
 
     // --- 回合/結束流程 ---
     endEvent() {
         this.state.turn++;
-        
-        // 固定模式檢查：通過兩次 Boss (第21回合開始前) 即結束
         if (this.state.mode === 'fixed' && this.state.turn > 20) {
             this.gameOver(true);
             return;
@@ -545,13 +645,13 @@ class GameApp {
 
     gameOver(isWin = false) {
         this.navigate('screen-result');
-        document.getElementById('result-title').innerText = isWin ? "恭喜通關！" : "你倒下了...";
+        document.getElementById('result-title').innerText = isWin ? "裂縫已關閉... 恭喜通關" : "靈魂消散於裂縫之中...";
+        document.getElementById('result-title').style.color = isWin ? "var(--primary-color)" : "var(--danger-color)";
         
         let finalScore = this.player.score;
-        // 根據 PDF 需求：結束後會根據剩餘生命與剩餘輔助道具和分數來計算
         if (this.state.mode === 'fixed' && isWin) {
-            const itemBonus = this.player.items.filter(i => i.type === 'assist').length * 100;
-            const hpBonus = this.player.hp * 2;
+            const itemBonus = this.player.items.filter(i => i.type === 'assist').length * 200;
+            const hpBonus = this.player.hp * 3;
             finalScore += (itemBonus + hpBonus);
         }
 
@@ -561,9 +661,11 @@ class GameApp {
         document.getElementById('res-score').innerText = finalScore;
 
         this.saveRecord(finalScore);
+        // 清除當前進度存檔
+        localStorage.removeItem('rift_rpg_save');
     }
 
-    // --- 存檔與紀錄 ---
+    // --- 遊玩紀錄 ---
     saveRecord(score) {
         const record = {
             date: new Date().toLocaleString(),
@@ -571,28 +673,28 @@ class GameApp {
             char: CHARACTERS.find(c => c.id === this.state.selectedCharId).name,
             score: score
         };
-        let records = JSON.parse(localStorage.getItem('rpg_records') || '[]');
-        records.unshift(record); // 加到最前面
-        localStorage.setItem('rpg_records', JSON.stringify(records));
+        let records = JSON.parse(localStorage.getItem('rift_rpg_records') || '[]');
+        records.unshift(record); 
+        localStorage.setItem('rift_rpg_records', JSON.stringify(records));
     }
 
     showRecords() {
         this.navigate('screen-records');
         const list = document.getElementById('records-list');
-        const records = JSON.parse(localStorage.getItem('rpg_records') || '[]');
+        const records = JSON.parse(localStorage.getItem('rift_rpg_records') || '[]');
         
         if (records.length === 0) {
-            list.innerHTML = '<p style="text-align:center;">暫無遊玩紀錄</p>';
+            list.innerHTML = '<p style="text-align:center; color:#777;">暫無探索紀錄</p>';
             return;
         }
         
         list.innerHTML = records.map(r => `
-            <div class="record-item">
-                <div><b>時間:</b> ${r.date}</div>
+            <div style="border-bottom: 1px solid var(--border-color); padding: 10px 0;">
+                <div style="color:#aaa; font-size:0.9em;"><b>探索時間:</b> ${r.date}</div>
                 <div class="stat-row">
                     <span><b>模式:</b> ${r.mode}</span>
-                    <span><b>角色:</b> ${r.char}</span>
-                    <span style="color:var(--primary-color)"><b>分數:</b> ${r.score}</span>
+                    <span><b>冒險者:</b> ${r.char}</span>
+                    <span style="color:var(--highlight)"><b>最終分數:</b> ${r.score}</span>
                 </div>
             </div>
         `).join('');
