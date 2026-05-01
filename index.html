@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>網頁版 RPG 冒險</title>
+    <style>
+        :root { --bg: #1a1a2e; --panel: #16213e; --text: #e94560; --text-light: #fff; }
+        body { font-family: 'Courier New', Courier, monospace; background-color: var(--bg); color: var(--text-light); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+        #game-container { width: 800px; height: 600px; background-color: var(--panel); border: 4px solid var(--text); border-radius: 10px; position: relative; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 20px rgba(233, 69, 96, 0.5); }
+        .screen { display: none; width: 100%; height: 100%; padding: 20px; box-sizing: border-box; flex-direction: column; align-items: center; justify-content: center; }
+        .active { display: flex; }
+        h1, h2 { color: var(--text); text-shadow: 2px 2px 0px #000; text-align: center; }
+        button { background-color: var(--text); color: white; border: 2px solid #fff; padding: 10px 20px; margin: 10px; font-size: 18px; cursor: pointer; border-radius: 5px; transition: 0.2s; font-family: inherit; font-weight: bold; }
+        button:hover { background-color: #fff; color: var(--text); transform: scale(1.05); }
+        button:disabled { background-color: #555; color: #888; cursor: not-allowed; border-color: #555; transform: none; }
+        
+        /* Battle Screen */
+        #battle-area { display: flex; justify-content: space-between; width: 100%; flex: 1; margin-bottom: 20px; }
+        .entity { width: 45%; background: #0f3460; border: 2px solid #fff; border-radius: 10px; padding: 15px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.1s; }
+        .entity h3 { margin: 0 0 10px 0; font-size: 24px; }
+        .hp-bar-bg { width: 100%; height: 20px; background: #333; border-radius: 10px; overflow: hidden; border: 1px solid #fff; margin-bottom: 10px;}
+        .hp-bar-fill { height: 100%; background: #4caf50; transition: width 0.3s ease-out; }
+        .status-area { display: flex; gap: 5px; margin-bottom: 10px; min-height: 24px; }
+        .status-badge { background: #ff9800; color: #000; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        
+        /* UI & Logs */
+        #controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        #log-box { flex: 0.5; background: #000; border: 2px solid var(--text); border-radius: 5px; padding: 10px; overflow-y: auto; font-size: 14px; margin-bottom: 20px; width: 100%; box-sizing: border-box; }
+        .log-entry { margin-bottom: 5px; border-bottom: 1px dashed #333; padding-bottom: 3px; }
+        .log-player { color: #4caf50; }
+        .log-enemy { color: #f44336; }
+        .log-effect { color: #ffeb3b; }
+
+        /* 打擊感特效 (Hit Feel) */
+        @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
+        .shake { animation: shake 0.3s; background: #b71c1c !important; }
+        
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-50px) scale(1.5); } }
+        .dmg-text { position: absolute; color: #ffeb3b; font-size: 32px; font-weight: bold; text-shadow: 2px 2px 4px #000; animation: floatUp 1s ease-out forwards; pointer-events: none; z-index: 10; }
+        
+        .char-select-grid { display: flex; gap: 20px; }
+        .char-card { border: 2px solid #fff; padding: 20px; cursor: pointer; text-align: center; border-radius: 10px; width: 150px; }
+        .char-card:hover { border-color: var(--text); background: rgba(233, 69, 96, 0.2); }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- 起始畫面 -->
+    <div id="screen-start" class="screen active">
+        <h1>終極網頁 RPG</h1>
+        <p>生存、戰鬥、選擇你的命運</p>
+        <button onclick="navTo('screen-mode')">開始遊戲</button>
+    </div>
+
+    <!-- 模式選擇 -->
+    <div id="screen-mode" class="screen">
+        <h2>選擇遊戲模式</h2>
+        <button onclick="setMode('story')">故事模式 (20回合通關)</button>
+        <button onclick="setMode('endless')">無盡模式 (挑戰極限)</button>
+    </div>
+
+    <!-- 角色選擇 -->
+    <div id="screen-char" class="screen">
+        <h2>選擇起始角色</h2>
+        <div class="char-select-grid">
+            <div class="char-card" onclick="startGame('warrior')">
+                <h3>🛡️ 戰士</h3>
+                <p>高血量、高防禦<br><small>穩定輸出，不易陣亡</small></p>
+            </div>
+            <div class="char-card" onclick="startGame('rogue')">
+                <h3>🗡️ 盜賊</h3>
+                <p>高爆擊、毒素<br><small>機率造成巨大傷害與中毒</small></p>
+            </div>
+            <div class="char-card" onclick="startGame('mage')">
+                <h3>🔥 法師</h3>
+                <p>高攻擊、燃燒<br><small>附帶強大負面效果，但皮脆</small></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 戰鬥畫面 -->
+    <div id="screen-battle" class="screen">
+        <h2 id="round-display" style="margin: 0 0 10px 0;">第 1 回合</h2>
+        <div id="battle-area">
+            <div class="entity" id="player-entity">
+                <h3 id="p-name">玩家</h3>
+                <div class="status-area" id="p-status"></div>
+                <div class="hp-bar-bg"><div class="hp-bar-fill" id="p-hp-fill"></div></div>
+                <span id="p-hp-text">100/100</span>
+            </div>
+            <div class="entity" id="enemy-entity">
+                <h3 id="e-name">史萊姆</h3>
+                <div class="status-area" id="e-status"></div>
+                <div class="hp-bar-bg"><div class="hp-bar-fill" id="e-hp-fill"></div></div>
+                <span id="e-hp-text">50/50</span>
+            </div>
+        </div>
+        <div id="log-box"></div>
+        <div id="controls">
+            <button id="btn-attack" onclick="playerAction('attack')">⚔️ 普通攻擊</button>
+            <button id="btn-skill" onclick="playerAction('skill')">✨ 使用技能</button>
+            <button id="btn-item" onclick="playerAction('item')">🎒 喝水回血</button>
+        </div>
+    </div>
+
+    <!-- 戰利品畫面 -->
+    <div id="screen-loot" class="screen">
+        <h2>戰鬥勝利！選擇你的戰利品</h2>
+        <div id="loot-options" class="char-select-grid"></div>
+    </div>
+
+    <!-- 結局畫面 -->
+    <div id="screen-end" class="screen">
+        <h1 id="end-title">遊戲結束</h1>
+        <p id="end-desc"></p>
+        <button onclick="location.reload()">重新開始</button>
+    </div>
+</div>
+
+<script>
+    // --- 資料與狀態 ---
+    const DB = {
+        classes: {
+            warrior: { name: "戰士", hp: 150, maxHp: 150, atk: 15, def: 5, crit: 0.1, pot: 3, skillName: "盾擊 (機率暈眩)" },
+            rogue: { name: "盜賊", hp: 90, maxHp: 90, atk: 18, def: 2, crit: 0.4, pot: 3, skillName: "毒刃 (賦予中毒)" },
+            mage: { name: "法師", hp: 70, maxHp: 70, atk: 25, def: 1, crit: 0.1, pot: 3, skillName: "火球 (賦予燃燒)" }
+        },
+        enemies: [
+            { name: "狂暴史萊姆", hp: 40, atk: 8, def: 1 },
+            { name: "哥布林斥候", hp: 60, atk: 12, def: 2 },
+            { name: "骷髏戰士", hp: 80, atk: 15, def: 4 },
+            { name: "深淵魔將", hp: 150, atk: 20, def: 8 } // Boss
+        ]
+    };
+
+    let gameState = {
+        mode: 'story', // 'story' or 'endless'
+        round: 1,
+        player: null,
+        enemy: null,
+        turnInProgress: false
+    };
+
+    // --- UI 導覽 ---
+    function navTo(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function setMode(mode) {
+        gameState.mode = mode;
+        navTo('screen-char');
+    }
+
+    function startGame(charKey) {
+        // 深拷貝角色資料，並加上狀態陣列
+        gameState.player = JSON.parse(JSON.stringify(DB.classes[charKey]));
+        gameState.player.id = 'player';
+        gameState.player.classKey = charKey;
+        gameState.player.effects = []; 
+        gameState.round = 1;
+        
+        spawnEnemy();
+        updateUI();
+        document.getElementById('log-box').innerHTML = '';
+        log(`[系統] 你選擇了 ${gameState.player.name}，冒險開始！`);
+        navTo('screen-battle');
+    }
+
+    function spawnEnemy() {
+        // 動態生成敵人，難度隨回合上升
+        let baseEnemy = DB.enemies[Math.min(Math.floor((gameState.round - 1) / 5), DB.enemies.length - 1)];
+        let multiplier = 1 + (gameState.round * 0.15); // 每回合增強15%
+        
+        gameState.enemy = {
+            id: 'enemy',
+            name: `Lv.${gameState.round} ${baseEnemy.name}`,
+            maxHp: Math.floor(baseEnemy.hp * multiplier),
+            hp: Math.floor(baseEnemy.hp * multiplier),
+            atk: Math.floor(baseEnemy.atk * multiplier),
+            def: Math.floor(baseEnemy.def * multiplier),
+            effects: []
+        };
+        
+        document.getElementById('round-display').innerText = gameState.mode === 'story' 
+            ? `故事模式 - 第 ${gameState.round} / 20 回合` 
+            : `無盡模式 - 第 ${gameState.round} 回合`;
+    }
+
+    // --- 核心戰鬥邏輯 ---
+    async function playerAction(actionType) {
+        if (gameState.turnInProgress) return;
+        gameState.turnInProgress = true;
+        toggleButtons(true);
+
+        // 1. 結算玩家身上的負面狀態 (DoT, 暈眩等)
+        let canAct = processEffects(gameState.player);
+        updateUI();
+        await sleep(800);
+
+        // 2. 玩家行動
+        if (canAct && gameState.player.hp > 0) {
+            if (actionType === 'attack') {
+                performAttack(gameState.player, gameState.enemy);
+            } else if (actionType === 'skill') {
+                useSkill(gameState.player, gameState.enemy);
+            } else if (actionType === 'item') {
+                useItem(gameState.player);
+            }
+            updateUI();
+            await sleep(1000);
+        }
+
+        // 檢查敵人是否死亡
+        if (gameState.enemy.hp <= 0) {
+            handleVictory();
+            return;
+        }
+
+        // 3. 結算敵人身上的負面狀態
+        let enemyCanAct = processEffects(gameState.enemy);
+        updateUI();
+        await sleep(800);
+
+        // 4. 敵人行動
+        if (enemyCanAct && gameState.enemy.hp > 0) {
+            performAttack(gameState.enemy, gameState.player);
+            updateUI();
+            await sleep(1000);
+        }
+
+        // 檢查玩家是否死亡
+        if (gameState.player.hp <= 0) {
+            handleDefeat();
+            return;
+        }
+
+        gameState.turnInProgress = false;
+        toggleButtons(false);
+    }
+
+    function performAttack(attacker, defender) {
+        // 傷害公式與爆擊
+        let isCrit = Math.random() < (attacker.crit || 0.05);
+        let baseDmg = Math.max(1, attacker.atk - defender.def + Math.floor(Math.random() * 5));
+        let finalDmg = isCrit ? Math.floor(baseDmg * 1.5) : baseDmg;
+
+        defender.hp = Math.max(0, defender.hp - finalDmg);
+        
+        // UI 回饋：打擊感
+        showDamage(defender.id, finalDmg, isCrit);
+        shakeEntity(defender.id);
+        
+        log(`<span class="log-${attacker.id}">${attacker.name}</span> 攻擊了 ${defender.name}，造成了 ${finalDmg} 點傷害！${isCrit?' (爆擊!)':''}`);
+    }
+
+    function useSkill(player, enemy) {
+        // 根據職業施放不同技能與負面效果
+        log(`<span class="log-player">${player.name}</span> 使用了絕招【${player.skillName}】！`);
+        performAttack(player, enemy); // 基礎傷害
+        
+        if (player.classKey === 'warrior' && Math.random() < 0.5) {
+            applyEffect(enemy, '暈眩', 1, 'stun');
+        } else if (player.classKey === 'rogue') {
+            applyEffect(enemy, '中毒', 3, 'poison');
+        } else if (player.classKey === 'mage') {
+            applyEffect(enemy, '燃燒', 2, 'burn');
+        }
+    }
+
+    function useItem(player) {
+        if (player.pot > 0) {
+            let heal = Math.floor(player.maxHp * 0.4);
+            player.hp = Math.min(player.maxHp, player.hp + heal);
+            player.pot--;
+            log(`<span class="log-player">${player.name}</span> 喝下了藥水，回復 ${heal} 點生命。(剩餘 ${player.pot} 瓶)`);
+            showDamage(player.id, `+${heal}`, false, '#4caf50');
+        } else {
+            log(`<span class="log-player">${player.name}</span> 沒有藥水了！浪費了一回合！`);
+        }
+    }
+
+    // --- 負面效果系統 (Debuffs) ---
+    function applyEffect(target, name, duration, type) {
+        // 避免重複堆疊太多同類狀態，刷新持續時間
+        let existing = target.effects.find(e => e.type === type);
+        if (existing) {
+            existing.duration = duration;
+        } else {
+            target.effects.push({ name, duration, type });
+        }
+        log(`<span class="log-effect">${target.name} 被附加了 [${name}] 效果！</span>`);
+    }
+
+    function processEffects(entity) {
+        let canAct = true;
+        for (let i = entity.effects.length - 1; i >= 0; i--) {
+            let eff = entity.effects[i];
+            if (eff.type === 'poison') {
+                let dmg = Math.floor(entity.maxHp * 0.05) + 2;
+                entity.hp -= dmg;
+                log(`<span class="log-effect">[中毒] ${entity.name} 受到 ${dmg} 點毒素傷害。</span>`);
+                showDamage(entity.id, dmg, false, '#9c27b0');
+            } else if (eff.type === 'burn') {
+                let dmg = 10;
+                entity.hp -= dmg;
+                log(`<span class="log-effect">[燃燒] ${entity.name} 受到 ${dmg} 點火焰傷害。</span>`);
+                showDamage(entity.id, dmg, false, '#ff5722');
+            } else if (eff.type === 'stun') {
+                log(`<span class="log-effect">[暈眩] ${entity.name} 無法行動！</span>`);
+                canAct = false;
+            }
+            
+            eff.duration--;
+            if (eff.duration <= 0) {
+                entity.effects.splice(i, 1);
+            }
+        }
+        return canAct;
+    }
+
+    // --- 遊戲流程控制 ---
+    function handleVictory() {
+        log(`🏆 擊敗了 ${gameState.enemy.name}！`);
+        if (gameState.mode === 'story' && gameState.round >= 20) {
+            endGame(true);
+            return;
+        }
+        
+        setTimeout(() => {
+            generateLoot();
+            navTo('screen-loot');
+        }, 1000);
+    }
+
+    function handleDefeat() {
+        endGame(false);
+    }
+
+    function generateLoot() {
+        let options = document.getElementById('loot-options');
+        options.innerHTML = '';
+        
+        const lootPool = [
+            { name: "鐵匠強化", desc: "攻擊力 +5", apply: (p) => p.atk += 5 },
+            { name: "堅固護甲", desc: "防禦力 +3", apply: (p) => p.def += 3 },
+            { name: "生命紅寶石", desc: "最大生命 +20並回滿", apply: (p) => { p.maxHp += 20; p.hp = p.maxHp; } },
+            { name: "磨刀石", desc: "爆擊率 +10%", apply: (p) => p.crit += 0.1 },
+            { name: "補給背包", desc: "藥水 +2", apply: (p) => p.pot += 2 }
+        ];
+
+        // 隨機挑選3個
+        let shuffled = lootPool.sort(() => 0.5 - Math.random()).slice(0, 3);
+        
+        shuffled.forEach((loot, idx) => {
+            let div = document.createElement('div');
+            div.className = 'char-card';
+            div.innerHTML = `<h3>${loot.name}</h3><p>${loot.desc}</p>`;
+            div.onclick = () => {
+                loot.apply(gameState.player);
+                gameState.round++;
+                spawnEnemy();
+                updateUI();
+                gameState.turnInProgress = false;
+                toggleButtons(false);
+                navTo('screen-battle');
+            };
+            options.appendChild(div);
+        });
+    }
+
+    function endGame(isWin) {
+        navTo('screen-end');
+        let title = document.getElementById('end-title');
+        let desc = document.getElementById('end-desc');
+        if (isWin) {
+            title.innerText = "🏆 勝利！";
+            title.style.color = "#ffeb3b";
+            desc.innerText = "恭喜你通關了故事模式，成為了傳說中的英雄！";
+        } else {
+            title.innerText = "☠️ 死亡";
+            title.style.color = "#f44336";
+            desc.innerText = `你在第 ${gameState.round} 回合倒下了。你的傳奇到此為止。`;
+        }
+    }
+
+    // --- UI 輔助函數 ---
+    function updateUI() {
+        if(!gameState.player || !gameState.enemy) return;
+        
+        // 玩家 UI
+        document.getElementById('p-name').innerText = gameState.player.name;
+        document.getElementById('p-hp-text').innerText = `${Math.max(0, gameState.player.hp)}/${gameState.player.maxHp}`;
+        document.getElementById('p-hp-fill').style.width = `${(Math.max(0, gameState.player.hp) / gameState.player.maxHp) * 100}%`;
+        document.getElementById('btn-skill').innerText = `✨ ${gameState.player.skillName}`;
+        document.getElementById('btn-item').innerText = `🎒 喝水 (${gameState.player.pot})`;
+        renderStatus(gameState.player, 'p-status');
+
+        // 敵人 UI
+        document.getElementById('e-name').innerText = gameState.enemy.name;
+        document.getElementById('e-hp-text').innerText = `${Math.max(0, gameState.enemy.hp)}/${gameState.enemy.maxHp}`;
+        document.getElementById('e-hp-fill').style.width = `${(Math.max(0, gameState.enemy.hp) / gameState.enemy.maxHp) * 100}%`;
+        renderStatus(gameState.enemy, 'e-status');
+    }
+
+    function renderStatus(entity, elementId) {
+        let container = document.getElementById(elementId);
+        container.innerHTML = '';
+        entity.effects.forEach(eff => {
+            let span = document.createElement('span');
+            span.className = 'status-badge';
+            span.innerText = `${eff.name} x${eff.duration}`;
+            container.appendChild(span);
+        });
+    }
+
+    function log(msg) {
+        let box = document.getElementById('log-box');
+        box.innerHTML += `<div class="log-entry">${msg}</div>`;
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function toggleButtons(disable) {
+        document.getElementById('btn-attack').disabled = disable;
+        document.getElementById('btn-skill').disabled = disable;
+        document.getElementById('btn-item').disabled = disable;
+    }
+
+    // --- 特效與動畫 ---
+    function shakeEntity(entityId) {
+        let el = document.getElementById(`${entityId}-entity`);
+        el.classList.remove('shake');
+        void el.offsetWidth; // 觸發重繪以重啟動畫
+        el.classList.add('shake');
+        setTimeout(() => el.classList.remove('shake'), 300);
+    }
+
+    function showDamage(entityId, amount, isCrit, color = null) {
+        let el = document.getElementById(`${entityId}-entity`);
+        let dmg = document.createElement('div');
+        dmg.className = 'dmg-text';
+        dmg.innerText = amount;
+        if (isCrit) {
+            dmg.style.color = '#ff5722';
+            dmg.style.fontSize = '48px';
+            dmg.innerText += '!';
+        }
+        if (color) dmg.style.color = color;
+        
+        // 隨機偏移一點點避免數字重疊
+        let offsetX = Math.random() * 40 - 20;
+        dmg.style.left = `calc(50% + ${offsetX}px)`;
+        dmg.style.top = '20%';
+        
+        el.appendChild(dmg);
+        setTimeout(() => dmg.remove(), 1000);
+    }
+
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+</script>
+</body>
+</html>
