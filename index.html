@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>網頁版文字RPG</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --text-color: #333;
+            --border-color: #ccc;
+            --primary-color: #0056b3;
+            --btn-bg: #e0e0e0;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+        }
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            min-height: 100vh;
+            border-left: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        h1, h2, h3 { text-align: center; }
+        .menu-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 16px;
+            background-color: var(--btn-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .menu-btn:hover { background-color: #d0d0d0; }
+        .stats-box {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            background: #fafafa;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        .enemy-box {
+            border: 1px solid red;
+            padding: 10px;
+            margin: 10px 0;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .enemy-box:hover { background-color: #ffe6e6; }
+        .nav-tabs {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+        }
+        .nav-tabs button { flex: 1; margin: 0 5px; }
+        .point-allocator {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .point-allocator button {
+            width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border-color); cursor: pointer;
+        }
+        .point-allocator span { flex: 1; text-align: center; }
+        .log-box {
+            height: 150px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            background: #eee;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- 標題介面 -->
+    <div id="screen-title" class="screen active">
+        <h1>遊戲名字</h1>
+        <button class="menu-btn" onclick="app.navigate('screen-mode')">新遊戲</button>
+        <button class="menu-btn" onclick="app.navigate('screen-load')">讀取存檔</button>
+        <button class="menu-btn" onclick="alert('離開遊戲')">離開遊戲</button>
+    </div>
+
+    <!-- 讀取存檔 -->
+    <div id="screen-load" class="screen">
+        <h2>讀取存檔</h2>
+        <button class="menu-btn">存檔1 (無存檔)</button>
+        <button class="menu-btn">存檔2 (無存檔)</button>
+        <button class="menu-btn">存檔3 (無存檔)</button>
+        <button class="menu-btn" onclick="app.navigate('screen-title')">上一頁</button>
+    </div>
+
+    <!-- 模式選擇 -->
+    <div id="screen-mode" class="screen">
+        <h2>選擇模式</h2>
+        <button class="menu-btn" onclick="app.navigate('screen-char')">故事模式 (共20回合)</button>
+        <button class="menu-btn" onclick="app.navigate('screen-char')">無盡模式</button>
+        <button class="menu-btn" onclick="app.navigate('screen-title')">上一頁</button>
+    </div>
+
+    <!-- 角色選擇與屬性 -->
+    <div id="screen-char" class="screen">
+        <h2>選擇角色</h2>
+        <div class="nav-tabs">
+            <button onclick="app.rollStats('角色1')">角色1</button>
+            <button onclick="app.rollStats('角色2')">角色2</button>
+            <button onclick="app.rollStats('角色3')">角色3</button>
+        </div>
+        <div class="stats-box" id="char-stats-preview">
+            <div class="stat-row"><span>LV: <span id="p-lv">1</span></span> <span>EXP: <span id="p-exp">0</span></span></div>
+            <div class="stat-row"><span>HP: <span id="p-hp">100</span></span> <span>MP: <span id="p-mp">50</span></span></div>
+            <div class="stat-row"><span>ATK: <span id="p-atk">10</span></span> <span>DEF: <span id="p-def">5</span></span></div>
+        </div>
+        <button class="menu-btn" onclick="app.rollStats()">重骰</button>
+        <button class="menu-btn" onclick="app.startGame()" style="background-color: #d4edda;">開始旅程</button>
+        <button class="menu-btn" onclick="app.navigate('screen-mode')">上一頁</button>
+    </div>
+
+    <!-- 遊戲主介面 (選單/事件/分配) -->
+    <div id="screen-hub" class="screen">
+        <div class="stats-box">
+            <div class="stat-row"><span>LV: <span class="d-lv"></span></span> <span>EXP: <span class="d-exp"></span></span></div>
+            <div class="stat-row"><span>HP: <span class="d-hp"></span></span> <span>MP: <span class="d-mp"></span></span></div>
+            <div class="stat-row"><span>ATK: <span class="d-atk"></span></span> <span>DEF: <span class="d-def"></span></span></div>
+        </div>
+        <div class="nav-tabs">
+            <button onclick="app.showHubTab('events')">事件</button>
+            <button onclick="app.showHubTab('points')">天賦</button>
+            <button onclick="app.showHubTab('equip')">裝備</button>
+            <button onclick="app.showHubTab('weapon')">武器</button>
+            <button onclick="app.showHubTab('item')">道具</button>
+        </div>
+        
+        <div id="tab-events">
+            <button class="menu-btn" onclick="app.startCombat(1)">事件1 (遭遇敵人)</button>
+            <button class="menu-btn" onclick="app.startCombat(2)">事件2 (雙重威脅)</button>
+            <button class="menu-btn" onclick="alert('劇情文本觸發！')">事件3 (劇情)</button>
+            <button class="menu-btn" onclick="app.navigate('screen-title')">返回標題介面</button>
+        </div>
+
+        <div id="tab-points" style="display:none;">
+            <h3 style="text-align: right;">POINT: <span id="d-points">5</span></h3>
+            <div class="point-allocator"><button>+</button><span>HP</span></div>
+            <div class="point-allocator"><button>+</button><span>MP</span></div>
+            <div class="point-allocator"><button>+</button><span>ATK</span></div>
+            <div class="point-allocator"><button>+</button><span>DEF</span></div>
+        </div>
+
+        <div id="tab-equip" style="display:none;">
+            <h3>裝備欄</h3>
+            <p>部位1: 裝備1 | 部位2: 裝備2</p>
+        </div>
+
+        <div id="tab-weapon" style="display:none;">
+            <h3>武器</h3>
+            <button class="menu-btn">武器1 (物理武器)</button>
+            <button class="menu-btn">武器2 (魔法武器)</button>
+        </div>
+
+        <div id="tab-item" style="display:none;">
+            <h3>道具</h3>
+            <button class="menu-btn">道具1 (回復HP)</button>
+            <button class="menu-btn">道具2 (提升ATK)</button>
+        </div>
+    </div>
+
+    <!-- 戰鬥介面 -->
+    <div id="screen-combat" class="screen">
+        <div class="stats-box">
+            <div class="stat-row"><span>LV: <span class="d-lv"></span></span> <span>EXP: <span class="d-exp"></span></span></div>
+            <div class="stat-row"><span>HP: <span class="d-hp"></span></span> <span>MP: <span class="d-mp"></span></span></div>
+            <div class="stat-row"><span>ATK: <span class="d-atk"></span></span> <span>DEF: <span class="d-def"></span></span></div>
+        </div>
+        <div class="nav-tabs">
+            <button onclick="alert('切換物理武器')">物理武器</button>
+            <button onclick="alert('切換魔法武器')">魔法武器</button>
+        </div>
+        <div id="enemy-container">
+            <!-- 敵人將由 JS 動態生成 -->
+        </div>
+        <div class="log-box" id="combat-log">戰鬥開始...<br>請點擊上方敵人進行攻擊。</div>
+        <button class="menu-btn" onclick="app.fleeCombat()">撤退 (上一頁)</button>
+    </div>
+
+    <!-- 結算介面 -->
+    <div id="screen-result" class="screen">
+        <h1 id="result-title">你贏了 / 你死了</h1>
+        <div class="stats-box">
+            <p>剩餘生命: <span id="res-hp"></span></p>
+            <p>回合數: <span id="res-turn"></span></p>
+            <p>分數: <span id="res-score">1000</span></p>
+        </div>
+        <button class="menu-btn" onclick="app.navigate('screen-mode')">再來一局</button>
+        <button class="menu-btn" onclick="app.navigate('screen-title')">返回標題介面</button>
+    </div>
+
+</div>
+
+<script>
+/**
+ * 採用物件導向(OOP)設計的核心資料結構
+ * 包含 Player (玩家) 與 GameApplication (流程控制) 類別
+ */
+class Player {
+    constructor() {
+        this.reset();
+    }
+    reset() {
+        this.lv = 1;
+        this.exp = 0;
+        this.maxHp = 100;
+        this.hp = 100;
+        this.mp = 50;
+        this.atk = 10;
+        this.def = 5;
+        this.points = 5;
+    }
+    roll() {
+        this.maxHp = 80 + Math.floor(Math.random() * 40);
+        this.hp = this.maxHp;
+        this.mp = 30 + Math.floor(Math.random() * 40);
+        this.atk = 8 + Math.floor(Math.random() * 10);
+        this.def = 3 + Math.floor(Math.random() * 8);
+    }
+}
+
+class GameApplication {
+    constructor() {
+        this.player = new Player();
+        this.enemies = [];
+        this.turns = 0;
+    }
+
+    // 畫面切換控制
+    navigate(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+        if(screenId === 'screen-hub' || screenId === 'screen-combat') {
+            this.updateUI();
+        }
+    }
+
+    // 樞紐選單分頁控制
+    showHubTab(tabName) {
+        ['events', 'points', 'equip', 'weapon', 'item'].forEach(t => {
+            document.getElementById(`tab-${t}`).style.display = 'none';
+        });
+        document.getElementById(`tab-${tabName}`).style.display = 'block';
+    }
+
+    // 重骰屬性
+    rollStats(charName) {
+        this.player.roll();
+        document.getElementById('p-hp').innerText = this.player.hp;
+        document.getElementById('p-mp').innerText = this.player.mp;
+        document.getElementById('p-atk').innerText = this.player.atk;
+        document.getElementById('p-def').innerText = this.player.def;
+    }
+
+    // 更新各處的屬性顯示
+    updateUI() {
+        document.querySelectorAll('.d-lv').forEach(el => el.innerText = this.player.lv);
+        document.querySelectorAll('.d-exp').forEach(el => el.innerText = this.player.exp);
+        document.querySelectorAll('.d-hp').forEach(el => el.innerText = `${this.player.hp}/${this.player.maxHp}`);
+        document.querySelectorAll('.d-mp').forEach(el => el.innerText = this.player.mp);
+        document.querySelectorAll('.d-atk').forEach(el => el.innerText = this.player.atk);
+        document.querySelectorAll('.d-def').forEach(el => el.innerText = this.player.def);
+    }
+
+    startGame() {
+        this.turns = 0;
+        this.navigate('screen-hub');
+    }
+
+    // 戰鬥系統初始化
+    startCombat(enemyCount) {
+        this.enemies = [];
+        const container = document.getElementById('enemy-container');
+        container.innerHTML = '';
+        
+        for(let i = 1; i <= enemyCount; i++) {
+            let enemy = { id: i, hp: 50, maxHp: 50, atk: 8, name: `敵人${i}` };
+            this.enemies.push(enemy);
+            
+            let btn = document.createElement('div');
+            btn.className = 'enemy-box';
+            btn.id = `enemy-${i}`;
+            btn.innerHTML = `<strong>${enemy.name}</strong> <br> HP: <span id="e-hp-${i}">${enemy.hp}/${enemy.maxHp}</span>`;
+            btn.onclick = () => this.attackEnemy(i);
+            container.appendChild(btn);
+        }
+        
+        document.getElementById('combat-log').innerHTML = '戰鬥開始...<br>請點選敵人進行攻擊。';
+        this.navigate('screen-combat');
+    }
+
+    // 攻擊邏輯
+    attackEnemy(id) {
+        const enemy = this.enemies.find(e => e.id === id);
+        if(!enemy || enemy.hp <= 0) return;
+
+        // 玩家攻擊
+        let dmg = Math.max(1, this.player.atk - 2); 
+        enemy.hp -= dmg;
+        this.log(`你攻擊了 ${enemy.name}，造成 ${dmg} 點傷害。`);
+        
+        if(enemy.hp <= 0) {
+            enemy.hp = 0;
+            this.log(`${enemy.name} 被擊敗了！`);
+            document.getElementById(`enemy-${id}`).style.display = 'none';
+        } else {
+            document.getElementById(`e-hp-${id}`).innerText = `${enemy.hp}/${enemy.maxHp}`;
+        }
+
+        // 檢查勝利
+        if(this.enemies.every(e => e.hp <= 0)) {
+            this.endCombat(true);
+            return;
+        }
+
+        // 敵人反擊
+        this.enemies.forEach(e => {
+            if(e.hp > 0) {
+                let eDmg = Math.max(1, e.atk - this.player.def);
+                this.player.hp -= eDmg;
+                this.log(`${e.name} 攻擊了你，造成 ${eDmg} 點傷害。`);
+            }
+        });
+
+        this.updateUI();
+
+        // 檢查死亡
+        if(this.player.hp <= 0) {
+            this.player.hp = 0;
+            this.endCombat(false);
+        }
+    }
+
+    log(msg) {
+        const logBox = document.getElementById('combat-log');
+        logBox.innerHTML += `<br>> ${msg}`;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    fleeCombat() {
+        this.navigate('screen-hub');
+    }
+
+    endCombat(isWin) {
+        this.turns++;
+        document.getElementById('result-title').innerText = isWin ? "你贏了！" : "你死了，死於戰鬥...";
+        document.getElementById('res-hp').innerText = this.player.hp;
+        document.getElementById('res-turn').innerText = this.turns;
+        this.navigate('screen-result');
+        if(!isWin) this.player.reset(); // 死亡重置
+    }
+}
+
+const app = new GameApplication();
+</script>
+</body>
+</html>
